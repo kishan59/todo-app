@@ -1,9 +1,9 @@
 import { useMaterialUIController, setLayout } from 'context';
 import React, { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom';
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
+import DashboardLayout from "./Layouts/DashboardLayout";
+import DashboardNavbar from "./Layouts/DashboardNavbar";
+import Footer from "./Layouts/Footer";
 import { useSelector } from 'react-redux';
 
 const Hero = () => {

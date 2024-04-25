@@ -23,10 +23,10 @@ import { MaterialUIControllerProvider } from "context";
 import { Provider } from "react-redux";
 import store from "app/store";
 import PrivateRoutes from "components/PrivateRoutes";
-import Dashboard from "layouts/dashboard";
-import SignIn from "layouts/authentication/sign-in";
-import SignUp from "layouts/authentication/sign-up";
-import NotFoundPage from "layouts/NotFoundPage";
+import Dashboard from "screens/DashboardScreen";
+import LoginScreen from "screens/AuthScreens/LoginScreen";
+import RegisterScreen from "screens/AuthScreens/RegisterScreen";
+import NotFoundPage from "components/NotFoundPage";
 
 const container = document.getElementById("app");
 const root = createRoot(container);
@@ -37,8 +37,8 @@ root.render(
       <MaterialUIControllerProvider>
         <Routes>
           <Route path="/" element={<App />}>
-            <Route path="/login" element={<SignIn />} />
-            <Route path="/register" element={<SignUp />} />
+            <Route path="/login" element={<LoginScreen />} />
+            <Route path="/register" element={<RegisterScreen />} />
 
             {/* authenticated allowed routes */}
             <Route element={<PrivateRoutes />}>
@@ -47,8 +47,8 @@ root.render(
               {/* <Route path="profile" element={<ProfilePage />} /> */}
 
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
-          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </MaterialUIControllerProvider>
     </BrowserRouter>
