@@ -27,6 +27,7 @@ import Dashboard from "screens/DashboardScreen";
 import LoginScreen from "screens/AuthScreens/LoginScreen";
 import RegisterScreen from "screens/AuthScreens/RegisterScreen";
 import NotFoundPage from "components/NotFoundPage";
+import ProfileScreen from "screens/ProfileScreen";
 
 const container = document.getElementById("app");
 const root = createRoot(container);
@@ -44,11 +45,11 @@ root.render(
             <Route element={<PrivateRoutes />}>
               <Route index={true} element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
-              {/* <Route path="profile" element={<ProfilePage />} /> */}
+              <Route path="profile" element={<ProfileScreen />} />
 
             </Route>
-            <Route path="*" element={<NotFoundPage />} />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </MaterialUIControllerProvider>
     </BrowserRouter>

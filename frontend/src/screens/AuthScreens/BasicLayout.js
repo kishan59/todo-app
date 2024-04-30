@@ -26,18 +26,26 @@ import MDBox from "components/MDBox";
 import PageLayout from "../../components/Layouts/PageLayout";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function BasicLayout({ image, children }) {
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.auth);
 
+  const [showPage, setShowPage] = useState(false);
+
   useEffect(() => {
     if(userInfo) {
       navigate("/");
+    }else{
+      setShowPage(true);
     }
   }, [userInfo, navigate]);
 
+  if(!showPage){
+    return;
+  }
+  
   return (
     <PageLayout>
       <MDBox

@@ -18,15 +18,14 @@ const Hero = () => {
       }else {
         setLayout(dispatch, "page");
       }
-  }, [pathname]);
-    // can modify and make common components for both login, dashboard type pages like header footer sidebar etc...
+    }, [pathname]);
 
     if(layout === "dashboard") {
         return (
             <DashboardLayout>
                 <DashboardNavbar />
                 <Outlet />
-                <Footer />
+                {/* <Footer /> */}
             </DashboardLayout>
         )
     } else {

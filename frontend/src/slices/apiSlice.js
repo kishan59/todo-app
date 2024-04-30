@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { logout } from './authSlice';
 
 // remove this "/fetchApi" in production replace it with actual base url with domain,
     // it is just reference to calling api with proxy 
@@ -8,5 +9,5 @@ const baseQuery = fetchBaseQuery({baseUrl: "/fetchApi"});
 export const apiSlice = createApi({
     baseQuery,
     tagTypes: ['User'],
-    endpoints: (builder) => ({}),
+    endpoints: (builder) => ({})
 });
