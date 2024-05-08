@@ -37,11 +37,15 @@ const taskSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true 
-    }
+    },
+    order: {
+        dayOrder: { type: Number, required: false, default: undefined }, // Order based on due date view
+        categoryOrder: { type: Number, required: false, default: undefined }, // Order based on category ID view
+    },
 }, {
     timestamps: true
 });
 
-const Task = mongoose.Model('Task', taskSchema);
+const Task = mongoose.model('Task', taskSchema);
 
 export default Task;

@@ -2,7 +2,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import express from 'express';
 import userRoutes from './routes/userRoutes.js';
-import todoRoutes from './routes/todoRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 import connectDB from './config/db.js';
 
@@ -19,7 +19,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(cookieParser()); 
 
 app.use('/api/users', userRoutes);
-app.use('/api/todo', todoRoutes);
+app.use('/api/tasks', taskRoutes);
 
 app.get('/', (req, res) => res.send('Server is ready'));
 

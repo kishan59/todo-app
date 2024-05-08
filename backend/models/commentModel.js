@@ -12,13 +12,14 @@ const commentSchema = mongoose.Schema({
         ref: 'User',
         required: true
     },
-    text: {
+    comment_text: {
+        type: String,
         required: [true, 'Comment is required.']
     }
 }, {
     timestamps: true
 });
 
-const Comment = mongoose.Model('Comment', commentSchema);
+const Comment = mongoose.model('Comment', commentSchema);
 
 export default Comment;
