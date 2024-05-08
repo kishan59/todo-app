@@ -11,6 +11,8 @@ const notAuthorizedTask = asyncHandler(async (req, res, next) => {
     if(!task) {
         res.status(403);
         throw new Error('Not authorized to access this task.');
+    }else{
+        next();
     }
 });
 
@@ -23,6 +25,8 @@ const notAuthorizedCategory = asyncHandler(async (req, res, next) => {
     if(!category) {
         res.status(403);
         throw new Error('Not authorized to change this category.');
+    }else{
+        next();
     }
 });
 
@@ -45,6 +49,8 @@ const notAuthorizedComment = asyncHandler(async (req, res, next) => {
     if(!check){
         res.status(403);
         throw new Error(message);
+    }else{
+        next();
     }
 })
 

@@ -3,7 +3,7 @@ import Task from "../models/taskModel.js";
 
 const getAllTaskList = asyncHandler(async (req, res) => {
     const { _id } = req.user;
-    const tasks = await Task.find({ userId: _id });
+    const tasks = await Task.find({ userId: _id }).sort({'createdAt': -1});
     if(tasks.length !== 0){
         res.status(200).json({data: tasks});
     }else {
@@ -96,31 +96,69 @@ const editTask = asyncHandler(async (req, res) => {
 
 // when we delete task we need to reorder the related data, for e.x. if we delete category's task the reorder all those data 
     // we then need to find the task check dayOrder and categoryOrder and then find related tasks and reorder the whole tasks we found
-const deleteTask = asyncHandler(async (req, res) => {
-
+const deleteTask = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const task = await Task.findById(id);
+    if(task){
+        let reorderOperations = [];
+        if(task.due_date){
+            const dueDateTasks = await Task.find({ due_date: task.due_date, _id: { $ne: id } }).sort({ 'order.dayOrder':  1 });
+            const reorder_dueDateTasks = dueDateTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.dayOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_dueDateTasks];
+        }
+        if(task.categoryId){
+            const categoryTasks = await Task.find({ categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
+            const reorder_categoryTasks = categoryTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.categoryOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_categoryTasks]
+        }
+        try {
+            const deleteTask = await Task.findByIdAndDelete(id);
+            if(deleteTask){
+                const result = await Task.bulkWrite(reorderOperations);
+            }
+            res.status(200).json({message: 'Task deleted successfully.'});
+        } catch (err) {
+            next(err);
+        }
+    }else{
+        res.status(404);
+        throw new Error('Task not found.');
+    }
 });
 
 
-const reorderTask = asyncHandler(async (req, res) => {
-    const { type, taskOrders } = req.body;
+// type = 'dayOrder' or 'categoryOrder'
+// for e.x. taskOrders = {0005544dawdw: 1, dawbkabk0000: 2, dawbdkwabdkbakb: 3}
+const reorderTask = asyncHandler(async (req, res, next) => {
+    let { type, taskOrders } = req.body;
     if(type && taskOrders){
+        taskOrders = JSON.parse(taskOrders);
         const orderKey = `order.${type}`; 
-        const updateOperations = taskOrders.map((taskId, update) => ({
+        const reorderOperations = Object.keys(taskOrders).map((taskId, idx) => ({
             updateOne: {
                 filter: { _id: taskId },
-                update: { $set: { [orderKey]: update[taskId] } }
+                update: { $set: { [orderKey]: taskOrders[taskId] } }
             }
         }));
         try {
-           const result = await Task.bulkWrite(updateOperations);
-           res.status(200).json({message: 'Task re-ordered successfully.' })
+           const result = await Task.bulkWrite(reorderOperations);
+           res.status(200).json({message: 'Task reordered successfully.' })
         } catch (err) {
-            res.status(400);
-            throw new Error('Something went wrong, please try again later.');
+            next(err);
         }
     }else{
         res.status(400);
-        throw new Error('Type or Task re-order array is missing.');
+        throw new Error('Type or Task reorder data is missing.');
     }
 });
 
