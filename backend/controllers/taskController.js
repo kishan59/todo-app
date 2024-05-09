@@ -1,21 +1,44 @@
 import asyncHandler from "express-async-handler";
 import Task from "../models/taskModel.js";
 
-const getAllTaskList = asyncHandler(async (req, res) => {
+const getTaskList = asyncHandler(async (req, res) => {
+    let tasks = [];
     const { _id } = req.user;
-    const tasks = await Task.find({ userId: _id }).sort({'createdAt': -1});
-    if(tasks.length !== 0){
-        res.status(200).json({data: tasks});
-    }else {
-        res.status(404);
-        throw new Error('No tasks found.');
+    const { type } = req.body;
+    const limit = req.body.limit || 0;
+    const page = req.body.page || 1;
+    const offset = req.body.page || req.body.limit ? (page - 1) * limit : 0;
+    if(type == 'today'){
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const today = `${year}-${month}-${day}`;
+        tasks = await Task.find({ userId: _id, due_date: today })
+                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
+    }else if(type == 'upcoming') {
+        const { date } = req.body;
+        if(!date){
+            res.status(400);
+            throw new Error('Date is not provided.');
+        }
+        tasks = await Task.find({ userId: _id, due_date: date })
+                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
+    }else if(type == 'category') {
+        const { categoryId } = req.body;
+        if(!categoryId){
+            res.status(400);
+            throw new Error('Category Id is not provided.');
+        }
+        tasks = await Task.find({ $or: [{ userId: _id }, { assigned_to: _id }], categoryId })
+                            .sort({ 'order.categoryOrder': -1 }).skip(offset).limit(limit);
+    }else{
+        tasks = await Task.find({ userId: _id })
+                            .sort({ 'createdAt': -1 }).skip(offset).limit(limit);
     }
+    
+    res.status(200).json({data: tasks});
 });
-
-
-const getTodayTaskList = asyncHandler(async (req, res) => {
-    // { dueDate: { $in: dueDates } }
-})
 
 
 const createTask = asyncHandler(async (req, res) => {
@@ -163,4 +186,4 @@ const reorderTask = asyncHandler(async (req, res, next) => {
 });
 
 
-export { getAllTaskList, getTodayTaskList, createTask, editTask, deleteTask, reorderTask };
+export { getTaskList, createTask, editTask, deleteTask, reorderTask };

@@ -1,6 +1,6 @@
 import  express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
-import { createTask, deleteTask, editTask, getAllTaskList, reorderTask } from '../controllers/taskController.js';
+import { createTask, deleteTask, editTask, getTaskList, reorderTask } from '../controllers/taskController.js';
 import { notAuthorizedTask, notAuthorizedCategory, notAuthorizedComment } from '../middleware/taskMiddleware.js';
 
 const router = express.Router();
@@ -8,9 +8,7 @@ const router = express.Router();
 // partial update for only few field PATCH is used and for all fields update PUT is used
 
 router.use('/', protect);
-router.route('/').get(getAllTaskList);
-// router.route('/today').get(getTodayTaskList);
-// router.route('/upcoming').get(getUpcomingTaskList);
+router.route('/').get(getTaskList);
 router.route('/').post(createTask);
 router.route('/:id').patch(notAuthorizedTask, editTask);
 router.route('/:id').delete(notAuthorizedTask, deleteTask);
