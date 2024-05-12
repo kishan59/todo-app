@@ -41,10 +41,10 @@ import Icon from "@mui/material/Icon";
 const routes = [
   {
     type: "collapse",
-    name: "Dashboard",
-    key: "dashboard",
-    icon: <Icon fontSize="small">dashboard</Icon>,
-    route: "/dashboard",
+    name: "Inbox",
+    key: "inbox",
+    icon: <Icon fontSize="small">inbox</Icon>,
+    route: "/inbox",
   },
   // {
   //   type: "collapse",

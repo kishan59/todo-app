@@ -43,8 +43,8 @@ root.render(
 
             {/* authenticated allowed routes */}
             <Route element={<PrivateRoutes />}>
-              <Route index={true} element={<Navigate to="/dashboard" />} />
-              <Route path="dashboard" element={<Dashboard />} />
+              <Route index={true} element={<Navigate to="/inbox" />} />
+              <Route path="inbox" element={<Dashboard />} />
               <Route path="profile" element={<ProfileScreen />} />
 
             </Route>
