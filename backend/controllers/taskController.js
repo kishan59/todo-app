@@ -14,7 +14,7 @@ const getTaskList = asyncHandler(async (req, res) => {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const today = `${year}-${month}-${day}`;
-        tasks = await Task.find({ userId: _id, due_date: today })
+        tasks = await Task.find({ status: false, userId: _id, due_date: today })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'upcoming') {
         const { date } = req.body;
@@ -22,7 +22,7 @@ const getTaskList = asyncHandler(async (req, res) => {
             res.status(400);
             throw new Error('Date is not provided.');
         }
-        tasks = await Task.find({ userId: _id, due_date: date })
+        tasks = await Task.find({ status: false, userId: _id, due_date: date })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'category') {
         const { categoryId } = req.body;
@@ -30,10 +30,10 @@ const getTaskList = asyncHandler(async (req, res) => {
             res.status(400);
             throw new Error('Category Id is not provided.');
         }
-        tasks = await Task.find({ $or: [{ userId: _id }, { assigned_to: _id }], categoryId })
+        tasks = await Task.find({ status: false, $or: [{ userId: _id }, { assigned_to: _id }], categoryId })
                             .sort({ 'order.categoryOrder': -1 }).skip(offset).limit(limit);
     }else{
-        tasks = await Task.find({ userId: _id })
+        tasks = await Task.find({ status: false, userId: _id })
                             .sort({ 'createdAt': -1 }).skip(offset).limit(limit);
     }
     
@@ -41,16 +41,22 @@ const getTaskList = asyncHandler(async (req, res) => {
 });
 
 
+const getCompletedTaskList = asyncHandler(async (req, res) => {
+    // give the total tasks for (given type) and total done task for (given type)
+        // where (given type) can be today or this week or this month or specific start and end dates period, so we can show completed tasks summary
+})
+
+
 const createTask = asyncHandler(async (req, res) => {
     try {
         let body = req.body;
         let due_date_order, category_order;
         if(body.due_date){
-            const getLatestDayOrder = await Task.findOne({ due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
+            const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
             due_date_order = getLatestDayOrder?.order.dayOrder ? Number(getLatestDayOrder.order.dayOrder) + 1 : 1;
         }
         if(body.categoryId){
-            const getLatestCategoryOrder = await Task.findOne({ categoryId: body.categoryId }).sort({ 'order.categoryOrder':  -1 });
+            const getLatestCategoryOrder = await Task.findOne({ status: false, categoryId: body.categoryId }).sort({ 'order.categoryOrder':  -1 });
             category_order = getLatestCategoryOrder?.order.categoryOrder ? Number(getLatestCategoryOrder.order.categoryOrder) + 1 : 1;
         }
         let order = {
@@ -78,15 +84,16 @@ const createTask = asyncHandler(async (req, res) => {
 const editTask = asyncHandler(async (req, res) => {
     const { id } = req.params;
     let body = req.body;
-    const task = await Task.findById(id);
+    const task = await Task.find({ status: false, _id: id });
     if(task){
-        let due_date_order, category_order;
+        let due_date_order = task.order.dayOrder;
+        let category_order = task.order.categoryOrder;
         if(body.due_date && body.due_date != task.due_date){
-            const getLatestDayOrder = await Task.findOne({ due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
+            const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
             due_date_order = getLatestDayOrder?.order.dayOrder ? Number(getLatestDayOrder.order.dayOrder) + 1 : 1;
         }
         if(body.categoryId && body.categoryId != task.categoryId){
-            const getLatestDayOrder = await Task.findOne({ categoryId: body.categoryId }).sort({ 'order.categoryOrder':  -1 });
+            const getLatestDayOrder = await Task.findOne({ status: false, categoryId: body.categoryId }).sort({ 'order.categoryOrder':  -1 });
             category_order = getLatestDayOrder?.order.categoryOrder ? Number(getLatestDayOrder.order.categoryOrder) + 1 : 1;
         }
         let order = {
@@ -121,11 +128,11 @@ const editTask = asyncHandler(async (req, res) => {
     // we then need to find the task check dayOrder and categoryOrder and then find related tasks and reorder the whole tasks we found
 const deleteTask = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const task = await Task.findById(id);
+    const task = await Task.find({ status:false, _id: id });
     if(task){
         let reorderOperations = [];
         if(task.due_date){
-            const dueDateTasks = await Task.find({ due_date: task.due_date, _id: { $ne: id } }).sort({ 'order.dayOrder':  1 });
+            const dueDateTasks = await Task.find({ status: false, due_date: task.due_date, _id: { $ne: id } }).sort({ 'order.dayOrder':  1 });
             const reorder_dueDateTasks = dueDateTasks.map((task, idx) => ({
                 updateOne: {
                     filter: { _id: task._id },
@@ -135,7 +142,7 @@ const deleteTask = asyncHandler(async (req, res, next) => {
             reorderOperations = [...reorderOperations, ...reorder_dueDateTasks];
         }
         if(task.categoryId){
-            const categoryTasks = await Task.find({ categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
+            const categoryTasks = await Task.find({ status: false, categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
             const reorder_categoryTasks = categoryTasks.map((task, idx) => ({
                 updateOne: {
                     filter: { _id: task._id },
