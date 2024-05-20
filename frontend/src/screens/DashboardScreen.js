@@ -34,6 +34,16 @@ function Dashboard() {
     console.log("check=========> complete", taskId)
   }
 
+  const handleReorder = async (taskOrders = {}) => {
+    console.log("check=========> reordering", taskOrders);
+    // return new Promise((resolve, reject) => {
+    //   setTimeout(() => {
+    //     console.log("Reordering completed");
+    //     resolve(); // Resolve the promise when the action is completed
+    //   }, 5000); // Simulating a 1-second delay
+    // });
+  }
+
 
   return (
     <MDBox py={3}>
@@ -43,6 +53,7 @@ function Dashboard() {
         onEdit={handleTaskEdit} 
         onDelete={handleTaskDelete}
         onComplete={handleTaskComplete}
+        onReorder={handleReorder}
       />
     </MDBox>
   );

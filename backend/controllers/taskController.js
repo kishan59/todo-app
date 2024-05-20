@@ -8,7 +8,16 @@ const getTaskList = asyncHandler(async (req, res) => {
     const limit = req.body.limit || 0;
     const page = req.body.page || 1;
     const offset = req.body.page || req.body.limit ? (page - 1) * limit : 0;
-    if(type == 'today'){
+
+    if(type == 'overdue'){
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const today = `${year}-${month}-${day}`;
+        tasks = await Task.find({ status: false, userId: _id, due_date: { $lt: today } })
+                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
+    }else if(type == 'today'){
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -50,6 +59,10 @@ const getCompletedTaskList = asyncHandler(async (req, res) => {
 const createTask = asyncHandler(async (req, res) => {
     try {
         let body = req.body;
+        const { filter } = req.body; 
+        if(filter){
+            delete body['filter'];
+        }
         let due_date_order, category_order;
         if(body.due_date){
             const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
@@ -64,8 +77,11 @@ const createTask = asyncHandler(async (req, res) => {
             categoryOrder: category_order,
         };
         body = {...body, order}
-        const task = await Task.create(body);
-        res.status(200).json({message: 'Task created successfully.', data: task});
+        let task = await Task.create(body);
+        if(filter && Object.keys(filter).length != 0){
+            task = await Task.find({ status: false, userId: task._id, ...filter });
+        }
+        res.status(200).json({message: 'Task created successfully.', data: task || null});
     } catch (err) {
         if(err.name === 'ValidationError' && err.errors) {
             const errors = Object.keys(err.errors).reduce((acc, key) => {
@@ -84,6 +100,10 @@ const createTask = asyncHandler(async (req, res) => {
 const editTask = asyncHandler(async (req, res) => {
     const { id } = req.params;
     let body = req.body;
+    const { filter } = req.body; 
+    if(filter){
+        delete body['filter'];
+    }
     const task = await Task.find({ status: false, _id: id });
     if(task){
         let due_date_order = task.order.dayOrder;
@@ -103,15 +123,17 @@ const editTask = asyncHandler(async (req, res) => {
         body = {...body, order}
         try {
             task.set(body);
-            const updatedTask = await task.save();
-            res.status(200).json({message: 'Task updated successfully.', data: updatedTask});
+            let updatedTask = await task.save();
+            if(filter && Object.keys(filter).length != 0){
+                updatedTask = await Task.find({ status: false, userId: updatedTask._id, ...filter });
+            }
+            res.status(200).json({message: 'Task updated successfully.', data: updatedTask || null});
         } catch (err) {
             if(err.name === 'ValidationError' && err.errors) {
                 const errors = Object.keys(err.errors).reduce((acc, key) => {
                     acc[key] = err.errors[key].message;
                     return acc;
                 }, {});
-                
                 res.status(400).json({message: "Invalid task data.", errors});
             }else{
                 next(err);

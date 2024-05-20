@@ -9,32 +9,14 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 url: TASKS_URL,
                 method: 'GET',
                 body: data
-            })
+            }),
+            invalidatesTags: [{ type: 'Task', id: 'LIST' }],
         }),
-
+        
     })
 });
 
 export const { useGetTaskListMutation } = tasksApiSlice;
-
-
-
-// export const tasksApiSlice = apiSlice.injectEndpoints({
-//     endpoints: (builder) => ({
-//       getTaskList: builder.query({
-//         query: () => ({
-//           url: TASKS_URL,
-//           method: 'GET',
-//         }),
-//         providesTags: (result) =>
-//           result
-//             ? [...result.map(({ _id }) => ({ type: 'Task', id: _id })), 'Task']
-//             : ['Task'],
-//       }),
-//       // Other mutations...
-//     }),
-//   });
-  
 
 
 
