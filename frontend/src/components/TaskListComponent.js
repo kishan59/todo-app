@@ -33,17 +33,20 @@ const TaskListComponent = (props) => {
     setIsDragging(false);
     if(!result.destination) return;
     setReorderLoading(true);
+    let taskId = '';
     const taskOrders = {};
     const reorderTasks = Array.from(taskList);
     const movedTask = reorderTasks.splice(result.source.index, 1)[0];
+    taskId = movedTask._id;
     reorderTasks.splice(result.destination.index, 0, movedTask);
     reorderTasks.forEach((task, index) => {
         taskOrders[task._id] = index + 1;
     });
-    await onReorder(taskOrders);
+    await onReorder(taskId, taskOrders);
     setReorderLoading(false);
   }
 
+  // also add the backdrop ui as well so whenever edit or add or delete or reorder is happening pass the backdrop loader from dashboard....
 
   return (
     <MDBox display="flex" flexDirection="column" p={0} m={0}>
@@ -85,7 +88,7 @@ const TaskListComponent = (props) => {
                                                         pl={4}
                                                     >
                                                         {onReorder &&
-                                                            <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'move' }}>
+                                                            <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
                                                             <DragIndicator />
                                                         </div>}
                                                         {onComplete && <Checkboxbutton check={task.status} color={priority[task.priority]} onClick={() => onComplete(task._id)} />}

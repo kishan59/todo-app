@@ -4,10 +4,11 @@ import Task from "../models/taskModel.js";
 const getTaskList = asyncHandler(async (req, res) => {
     let tasks = [];
     const { _id } = req.user;
-    const { type } = req.body;
-    const limit = req.body.limit || 0;
-    const page = req.body.page || 1;
-    const offset = req.body.page || req.body.limit ? (page - 1) * limit : 0;
+    const { type } = req.query;
+    const limit = req.query.limit || 0;
+    const page = req.query.page || 1;
+    const offset = req.query.page || req.query.limit ? (page - 1) * limit : 0;
+    console.log("test today============>", req)
 
     if(type == 'overdue'){
         const now = new Date();
@@ -26,7 +27,7 @@ const getTaskList = asyncHandler(async (req, res) => {
         tasks = await Task.find({ status: false, userId: _id, due_date: today })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'upcoming') {
-        const { date } = req.body;
+        const { date } = req.query;
         if(!date){
             res.status(400);
             throw new Error('Date is not provided.');
@@ -34,7 +35,7 @@ const getTaskList = asyncHandler(async (req, res) => {
         tasks = await Task.find({ status: false, userId: _id, due_date: date })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'category') {
-        const { categoryId } = req.body;
+        const { categoryId } = req.query;
         if(!categoryId){
             res.status(400);
             throw new Error('Category Id is not provided.');

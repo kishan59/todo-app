@@ -46,14 +46,13 @@ const routes = [
     icon: <Icon fontSize="small">inbox</Icon>,
     route: "/inbox",
   },
-  // {
-  //   type: "collapse",
-  //   name: "Tables",
-  //   key: "tables",
-  //   icon: <Icon fontSize="small">table_view</Icon>,
-  //   route: "/tables",
-  //   component: <Tables />,
-  // },
+  {
+    type: "collapse",
+    name: "Today",
+    key: "today",
+    icon: <Icon fontSize="small">assignment</Icon>,
+    route: "/today",
+  },
   // {
   //   type: "collapse",
   //   name: "Billing",

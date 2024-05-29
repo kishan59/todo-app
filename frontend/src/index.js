@@ -28,6 +28,7 @@ import LoginScreen from "screens/AuthScreens/LoginScreen";
 import RegisterScreen from "screens/AuthScreens/RegisterScreen";
 import NotFoundPage from "components/NotFoundPage";
 import ProfileScreen from "screens/ProfileScreen";
+import TodayScreen from "screens/TodayScreen";
 
 const container = document.getElementById("app");
 const root = createRoot(container);
@@ -45,6 +46,7 @@ root.render(
             <Route element={<PrivateRoutes />}>
               <Route index={true} element={<Navigate to="/inbox" />} />
               <Route path="inbox" element={<Dashboard />} />
+              <Route path="today" element={<TodayScreen />} />
               <Route path="profile" element={<ProfileScreen />} />
 
             </Route>
