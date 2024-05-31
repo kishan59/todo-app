@@ -1,126 +1,296 @@
 import { useState } from 'react'
 import MDTypography from "components/MDTypography";
 import DateFormatter from "components/DateFormatter";
-import { CalendarMonth, Delete, DragIndicator, Edit, Margin } from "@mui/icons-material";
-import { Card, CircularProgress, IconButton } from "@mui/material";
+import { CalendarMonth, Delete, DragIndicator, Edit, ErrorOutline, Margin } from "@mui/icons-material";
+import { Card, CircularProgress, DialogContentText, Icon, IconButton, TextField } from "@mui/material";
 import MDBox from "components/MDBox";
 import Checkboxbutton from "components/Checkboxbutton";
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import FormDialog from './FormDialog';
+import { useDeleteTaskMutation, useReorderTaskListMutation } from "slices/taskSlice";
+import MDButton from './MDButton';
+import MDInput from './MDInput';
 
 
 const TaskListComponent = (props) => {
-  const { isLoading = false, backdrop = false, taskList, onEdit, onDelete, onComplete, onReorder } = props;
+    const { isLoading = false, taskList, reorderType,
+            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false } = props;
 
-  const priority = {low: "primary", medium: "warning", high: "error"}
-  const today = new Date();
-  
-  const [listHover, setListHover] = useState(null); 
+    const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [reorderLoading, setReorderLoading] = useState(false);
+    const priority = {low: "primary", medium: "warning", high: "error"}
+    const today = new Date();
 
-  const onDragStart = () => {
+    const [formData, setFormData] = useState({});
+    const [taskId, setTaskId] = useState('');
+    const [dialogData, setDialogData] = useState({});
+    const [openDialog, setOpenDialog] = useState(false);
+    const [listHover, setListHover] = useState(null); 
+    const [isDragging, setIsDragging] = useState(false);
+    const [reorderLoading, setReorderLoading] = useState(false);
+
+    const onDragStart = () => {
     setIsDragging(true);
-  };
+    };
 
-  const cardStyle = {
+    const cardStyle = {
     height: "100%",
     pb: isDragging ? 16.7 : 2,
     flex: 1,
-  };
+    };
 
-  const onDragEnd = async (result) => {
+    const onDragEnd = async (result) => {
     setIsDragging(false);
     if(!result.destination) return;
     setReorderLoading(true);
-    let taskId = '';
     const taskOrders = {};
     const reorderTasks = Array.from(taskList);
     const movedTask = reorderTasks.splice(result.source.index, 1)[0];
-    taskId = movedTask._id;
+    setTaskId(movedTask._id);
     reorderTasks.splice(result.destination.index, 0, movedTask);
     reorderTasks.forEach((task, index) => {
         taskOrders[task._id] = index + 1;
     });
-    await onReorder(taskId, taskOrders);
+    await handleReorder(taskOrders);
     setReorderLoading(false);
-  }
+    }
 
-  // also add the backdrop ui as well so whenever edit or add or delete or reorder is happening pass the backdrop loader from dashboard....
 
-  return (
-    <MDBox display="flex" flexDirection="column" p={0} m={0}>
-        {isLoading ? 
-            <MDBox display="flex" justifyContent="center" p={2}>
-                <CircularProgress />
+    const myFormBody =
+        (<>
+            <MDInput
+                required
+                margin="dense"
+                id="title"
+                name="title"
+                label="Task Name"
+                type="text"
+                variant="standard"
+                defaultValue={formData.title || ''}
+                fullWidth
+            />
+            <MDInput
+                margin="dense"
+                id="description"
+                name="description"
+                label="Description"
+                type="text"
+                variant="standard"
+                defaultValue={formData.description || ''}
+                fullWidth
+                multiline
+            />
+    </>);
+    {/* <FormControl fullWidth>
+    <InputLabel id="demo-simple-select-label">Priority</InputLabel>
+    <Select
+        labelId="demo-simple-select-label"
+        id="demo-simple-select"
+        value={age}
+        label="Age"
+        onChange={handleChange}
+    >
+        <MenuItem value={10}>Ten</MenuItem>
+        <MenuItem value={20}>Twenty</MenuItem>
+        <MenuItem value={30}>Thirty</MenuItem>
+    </Select>
+    </FormControl> */}
+
+    {/* <Autocomplete
+    id="grouped-demo"
+    options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
+    groupBy={(option) => option.firstLetter}
+    getOptionLabel={(option) => option.title}
+    sx={{ width: 300 }}
+    renderInput={(params) => <TextField {...params} label="With categories" />}
+    /> */}
+
+    const deleteText = <DialogContentText>Do you really want to delete this task?</DialogContentText>;
+    
+    const handleDialogOpen = (type) => {
+        let myData = {};
+        if(type == 'add') {
+            myData.title = 'Add Task';
+            myData.body = myFormBody;
+            myData.submitBtn = 'Add';
+        }else if(type == 'edit') {
+            myData.title = 'Edit Task';
+            // first call the api then call this form and fill with data 
+                // or maybe we can just pass that individual task data in to our state and avoid calling api for edit
+            myData.body = myFormBody;
+            myData.submitBtn = 'Update';
+        }else if(type == 'delete') {
+            myData.title = 'Delete Task';
+            myData.body = deleteText;
+            myData.submitBtn = 'Delete';
+        }
+        setDialogData(myData);
+        setOpenDialog(true);
+    };
+
+    const handleDialogClose = () => {
+        // also needd to catch modal close even, in case we click outside modal and it closes
+        setOpenDialog(false);
+        setTaskId('');
+        setDialogData({});
+    };
+
+    const handleFormSubmit = (formData) => {
+        if(formData.type == 'add'){
+            handleTaskAdd();
+        }else if(formData.type == 'edit'){
+            handleTaskEdit();
+        }else if(formData.type == 'delete'){
+            handleTaskDelete();
+        }
+    }
+
+
+    const handleTaskAdd = () => {
+
+    }
+
+
+    const handleTaskEdit = () => {
+    console.log("check=========> edit", taskId)
+    }
+
+
+    const handleTaskDelete = async () => {
+    try {
+        const result = await deleteTask({taskId, orderType: reorderType, filters: Object.keys(filters).length === 0 ? false : true}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
+        toast.success(CustomToast(result?.message));
+    } catch (error) {
+        console.error(error)
+        toast.error(CustomToast(error?.data?.message || error?.error));
+    } finally {
+        handleDialogClose();
+    }
+    }
+
+
+    const handleTaskComplete = () => {
+    console.log("check=========> complete", taskId)
+    }
+
+
+    const handleReorder = async (taskOrders = {}) => {
+    console.log("check=========> reordering", taskOrders);
+    // return new Promise((resolve, reject) => {
+    //   setTimeout(() => {
+    //     console.log("Reordering completed");
+    //     resolve(); // Resolve the promise when the action is completed
+    //   }, 5000); // Simulating a 1-second delay
+    // });
+    try {
+        // const reorderTaskList = await useReorderTaskListMutation({_id: taskId, type: reorderType, taskOrders}).unwrap();
+    } catch (error) {
+        toast.error(CustomToast(error?.data?.message || error?.error));
+    } finally {
+        setTaskId('');
+    }
+
+    // _id: taskId
+    // type: 'dayOrder'
+    // taskOrders
+    }
+
+
+  
+
+
+    // also add the backdrop ui as well so whenever edit or add or delete or reorder is happening pass the backdrop loader from dashboard....
+
+    
+    return (
+    <>
+        <FormDialog 
+            open={openDialog}
+            handleClose={handleDialogClose}
+            handleFormSubmit={handleFormSubmit}
+            dialogData={dialogData}
+        />
+        {onAdd && 
+            <MDBox mb={4}>
+                <MDButton variant="gradient" color="info" onClick={() => handleDialogOpen('add')}><Icon>add</Icon>&nbsp; Add Task</MDButton>
             </MDBox>
-        : taskList ? 
-            (taskList.length != 0 ?
-                <Card sx={cardStyle}>
-                    <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
-                        <Droppable droppableId='droppable'>
-                            {(provided) => (
-                                <div {...provided.droppableProps} ref={provided.innerRef}>
-                                    {taskList.map((task, index) => (
-                                        <Draggable key={task._id} draggableId={task._id} index={index} isDragDisabled={reorderLoading}>
-                                             {(provided, snapshot) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    sx={{
-                                                        ...provided.draggableProps.style,
-                                                        padding: 16,
-                                                        margin: '4px 0',
-                                                        background: snapshot.isDragging ? '#e0e0e0' : '#fff',
-                                                        border: '1px solid #ddd',
-                                                        borderRadius: 4,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                    }}
-                                                >
-                                                    <MDBox
-                                                        key={task._id}
-                                                        display="flex" py={2} mx={2} mb={1} borderBottom={1}
-                                                        borderColor={'#f0f2f5'}
-                                                        onMouseEnter={() => setListHover(task._id)}
-                                                        onMouseLeave={() => setListHover(null)}
-                                                        pl={4}
+        }
+        <MDBox display="flex" flexDirection="column" p={0} m={0}>
+            {isLoading ? 
+                <MDBox display="flex" justifyContent="center" p={2}>
+                    <CircularProgress />
+                </MDBox>
+            : taskList ? 
+                (taskList.length != 0 ?
+                    <Card sx={cardStyle}>
+                        <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
+                            <Droppable droppableId='droppable'>
+                                {(provided) => (
+                                    <div {...provided.droppableProps} ref={provided.innerRef}>
+                                        {taskList.map((task, index) => (
+                                            <Draggable key={task._id} draggableId={task._id} index={index} isDragDisabled={reorderLoading}>
+                                                {(provided, snapshot) => (
+                                                    <div
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        sx={{
+                                                            ...provided.draggableProps.style,
+                                                            padding: 16,
+                                                            margin: '4px 0',
+                                                            background: snapshot.isDragging ? '#e0e0e0' : '#fff',
+                                                            border: '1px solid #ddd',
+                                                            borderRadius: 4,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                        }}
                                                     >
-                                                        {onReorder &&
-                                                            <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
-                                                            <DragIndicator />
-                                                        </div>}
-                                                        {onComplete && <Checkboxbutton check={task.status} color={priority[task.priority]} onClick={() => onComplete(task._id)} />}
-                                                        <MDBox>
-                                                            <MDTypography variant="body1">{task.title}</MDTypography>
-                                                            <MDTypography variant="subtitle2" color="text">
-                                                                {task.description}
-                                                            </MDTypography>
-                                                            <MDBox display="flex" alignItems="center" gap={1} color={DateFormatter('yyyy-mm-dd', task.due_date) < DateFormatter('yyyy-mm-dd', today) ? 'error' : ''}>
-                                                                <CalendarMonth /> <MDTypography variant="body2" color="inherit">{DateFormatter('day month', task.due_date)}</MDTypography>                  
+                                                        <MDBox
+                                                            key={task._id}
+                                                            display="flex" py={2} mx={2} mb={1} borderBottom={1}
+                                                            borderColor={'#f0f2f5'}
+                                                            onMouseEnter={() => setListHover(task._id)}
+                                                            onMouseLeave={() => setListHover(null)}
+                                                            pl={4}
+                                                        >
+                                                            {onReorder &&
+                                                                <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
+                                                                <DragIndicator />
+                                                            </div>}
+                                                            {onComplete && <Checkboxbutton check={task.status} color={priority[task.priority]} onClick={() => handleTaskComplete(task._id)} />}
+                                                            <MDBox>
+                                                                <MDTypography variant="body1">{task.title}</MDTypography>
+                                                                <MDTypography variant="subtitle2" color="text">
+                                                                    {task.description}
+                                                                </MDTypography>
+                                                                <MDBox display="flex" alignItems="center" gap={1} color={DateFormatter('yyyy-mm-dd', task.due_date) < DateFormatter('yyyy-mm-dd', today) ? 'error' : ''}>
+                                                                    <CalendarMonth /> <MDTypography variant="body2" color="inherit">{DateFormatter('day month', task.due_date)}</MDTypography>                  
+                                                                </MDBox>
+                                                            </MDBox>
+                                                            <MDBox ml={'auto'} className={'myText'} color="secondary" sx={{visibility: listHover == task._id ? 'visible' : 'hidden'}}>
+                                                                {onEdit && <IconButton color="inherit" onClick={() => handleTaskEdit(task._id)}><Edit /></IconButton>}
+                                                                {onDelete && <IconButton color="inherit" onClick={() => {setTaskId(task._id); handleDialogOpen('delete')}}><Delete /></IconButton>}
                                                             </MDBox>
                                                         </MDBox>
-                                                        <MDBox ml={'auto'} className={'myText'} color="secondary" sx={{visibility: listHover == task._id ? 'visible' : 'hidden'}}>
-                                                            {onEdit && <IconButton color="inherit" onClick={() => onEdit(task._id)}><Edit /></IconButton>}
-                                                            {onDelete && <IconButton color="inherit" onClick={() => onDelete(task._id)}><Delete /></IconButton>}
-                                                        </MDBox>
-                                                    </MDBox>
-                                                </div>
-                                             )}
-                                        </Draggable>
-                                    ))}
-                                </div>
-                            )}
-                        </Droppable>
-                    </DragDropContext>
-                </Card>
-            : <MDBox display="flex" justifyContent="center">
-                <MDTypography variant="body1" color="error">No task found!</MDTypography>
-            </MDBox>)
-        : null}
-    </MDBox>
-  )
+                                                    </div>
+                                                )}
+                                            </Draggable>
+                                        ))}
+                                    </div>
+                                )}
+                            </Droppable>
+                        </DragDropContext>
+                    </Card>
+                : 
+                    <MDBox display="flex" alignItems="center" flexDirection="column">
+                        <MDBox sx={{fontSize: 150}} display="flex" color="secondary"><ErrorOutline fontSize='inherit'  /></MDBox>
+                        <MDTypography variant="body1">No task found!</MDTypography>
+                    </MDBox>
+                )
+            : null}
+        </MDBox>
+    </>
+    )
 }
 
 export default TaskListComponent
