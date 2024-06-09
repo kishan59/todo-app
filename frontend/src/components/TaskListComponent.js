@@ -2,14 +2,13 @@ import { useState } from 'react'
 import MDTypography from "components/MDTypography";
 import DateFormatter from "components/DateFormatter";
 import { CalendarMonth, Delete, DragIndicator, Edit, ErrorOutline, Margin } from "@mui/icons-material";
-import { Card, CircularProgress, DialogContentText, Icon, IconButton, TextField } from "@mui/material";
+import { Card, CircularProgress, Icon, IconButton } from "@mui/material";
 import MDBox from "components/MDBox";
 import Checkboxbutton from "components/Checkboxbutton";
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import FormDialog from './FormDialog';
 import { useDeleteTaskMutation, useReorderTaskListMutation } from "slices/taskSlice";
 import MDButton from './MDButton';
-import MDInput from './MDInput';
 
 
 const TaskListComponent = (props) => {
@@ -21,22 +20,23 @@ const TaskListComponent = (props) => {
     const priority = {low: "primary", medium: "warning", high: "error"}
     const today = new Date();
 
-    const [formData, setFormData] = useState({});
     const [taskId, setTaskId] = useState('');
-    const [dialogData, setDialogData] = useState({});
+    const [editData, setEditData] = useState({});
+    const [dialogType, setDialogType] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [listHover, setListHover] = useState(null); 
     const [isDragging, setIsDragging] = useState(false);
     const [reorderLoading, setReorderLoading] = useState(false);
 
-    const onDragStart = () => {
-    setIsDragging(true);
-    };
 
     const cardStyle = {
     height: "100%",
     pb: isDragging ? 16.7 : 2,
     flex: 1,
+    };
+
+    const onDragStart = () => {
+        setIsDragging(true);
     };
 
     const onDragEnd = async (result) => {
@@ -54,118 +54,52 @@ const TaskListComponent = (props) => {
     await handleReorder(taskOrders);
     setReorderLoading(false);
     }
-
-
-    const myFormBody =
-        (<>
-            <MDInput
-                required
-                margin="dense"
-                id="title"
-                name="title"
-                label="Task Name"
-                type="text"
-                variant="standard"
-                defaultValue={formData.title || ''}
-                fullWidth
-            />
-            <MDInput
-                margin="dense"
-                id="description"
-                name="description"
-                label="Description"
-                type="text"
-                variant="standard"
-                defaultValue={formData.description || ''}
-                fullWidth
-                multiline
-            />
-    </>);
-    {/* <FormControl fullWidth>
-    <InputLabel id="demo-simple-select-label">Priority</InputLabel>
-    <Select
-        labelId="demo-simple-select-label"
-        id="demo-simple-select"
-        value={age}
-        label="Age"
-        onChange={handleChange}
-    >
-        <MenuItem value={10}>Ten</MenuItem>
-        <MenuItem value={20}>Twenty</MenuItem>
-        <MenuItem value={30}>Thirty</MenuItem>
-    </Select>
-    </FormControl> */}
-
-    {/* <Autocomplete
-    id="grouped-demo"
-    options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
-    groupBy={(option) => option.firstLetter}
-    getOptionLabel={(option) => option.title}
-    sx={{ width: 300 }}
-    renderInput={(params) => <TextField {...params} label="With categories" />}
-    /> */}
-
-    const deleteText = <DialogContentText>Do you really want to delete this task?</DialogContentText>;
     
-    const handleDialogOpen = (type) => {
-        let myData = {};
-        if(type == 'add') {
-            myData.title = 'Add Task';
-            myData.body = myFormBody;
-            myData.submitBtn = 'Add';
-        }else if(type == 'edit') {
-            myData.title = 'Edit Task';
-            // first call the api then call this form and fill with data 
-                // or maybe we can just pass that individual task data in to our state and avoid calling api for edit
-            myData.body = myFormBody;
-            myData.submitBtn = 'Update';
-        }else if(type == 'delete') {
-            myData.title = 'Delete Task';
-            myData.body = deleteText;
-            myData.submitBtn = 'Delete';
-        }
-        setDialogData(myData);
+    
+    const handleDialogOpen = (type, data = {}) => {
+        setEditData(data);
+        setDialogType(type);
         setOpenDialog(true);
     };
 
     const handleDialogClose = () => {
-        // also needd to catch modal close even, in case we click outside modal and it closes
         setOpenDialog(false);
         setTaskId('');
-        setDialogData({});
+        setEditData({});
+        setDialogType('');
     };
 
     const handleFormSubmit = (formData) => {
-        if(formData.type == 'add'){
-            handleTaskAdd();
-        }else if(formData.type == 'edit'){
-            handleTaskEdit();
-        }else if(formData.type == 'delete'){
+        if(dialogType == 'add'){
+            handleTaskAdd(formData);
+        }else if(dialogType == 'edit'){
+            handleTaskEdit(formData);
+        }else if(dialogType == 'delete'){
             handleTaskDelete();
         }
     }
 
 
-    const handleTaskAdd = () => {
+    const handleTaskAdd = async (formData) => {
 
     }
+ 
 
-
-    const handleTaskEdit = () => {
+    const handleTaskEdit = async (formData) => {
     console.log("check=========> edit", taskId)
     }
 
 
     const handleTaskDelete = async () => {
-    try {
-        const result = await deleteTask({taskId, orderType: reorderType, filters: Object.keys(filters).length === 0 ? false : true}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
-        toast.success(CustomToast(result?.message));
-    } catch (error) {
-        console.error(error)
-        toast.error(CustomToast(error?.data?.message || error?.error));
-    } finally {
-        handleDialogClose();
-    }
+        try {
+            const result = await deleteTask({taskId, orderType: reorderType, filters: Object.keys(filters).length === 0 ? false : true}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
+            toast.success(CustomToast(result?.message));
+        } catch (error) {
+            console.error(error)
+            toast.error(CustomToast(error?.data?.message || error?.error));
+        } finally {
+            handleDialogClose();
+        }
     }
 
 
@@ -208,7 +142,9 @@ const TaskListComponent = (props) => {
             open={openDialog}
             handleClose={handleDialogClose}
             handleFormSubmit={handleFormSubmit}
-            dialogData={dialogData}
+            dialogType={dialogType}
+            priority={priority}
+            editData={editData}
         />
         {onAdd && 
             <MDBox mb={4}>
@@ -268,7 +204,7 @@ const TaskListComponent = (props) => {
                                                                 </MDBox>
                                                             </MDBox>
                                                             <MDBox ml={'auto'} className={'myText'} color="secondary" sx={{visibility: listHover == task._id ? 'visible' : 'hidden'}}>
-                                                                {onEdit && <IconButton color="inherit" onClick={() => handleTaskEdit(task._id)}><Edit /></IconButton>}
+                                                                {onEdit && <IconButton color="inherit" onClick={() => {setTaskId(task._id); handleDialogOpen('edit', task)}}><Edit /></IconButton>}
                                                                 {onDelete && <IconButton color="inherit" onClick={() => {setTaskId(task._id); handleDialogOpen('delete')}}><Delete /></IconButton>}
                                                             </MDBox>
                                                         </MDBox>

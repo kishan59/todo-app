@@ -8,7 +8,6 @@ const getTaskList = asyncHandler(async (req, res) => {
     const limit = req.query.limit || 0;
     const page = req.query.page || 1;
     const offset = req.query.page || req.query.limit ? (page - 1) * limit : 0;
-    console.log("test today============>", req)
 
     if(type == 'overdue'){
         const now = new Date();
@@ -59,7 +58,9 @@ const getCompletedTaskList = asyncHandler(async (req, res) => {
 
 const createTask = asyncHandler(async (req, res) => {
     try {
+        const { _id } = req.user;
         let body = req.body;
+        body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
         const { filter } = req.body; 
         if(filter){
             delete body['filter'];
@@ -80,7 +81,7 @@ const createTask = asyncHandler(async (req, res) => {
         body = {...body, order}
         let task = await Task.create(body);
         if(filter && Object.keys(filter).length != 0){
-            task = await Task.find({ status: false, userId: task._id, ...filter });
+            task = await Task.find({ status: false, userId: _id, ...filter });
         }
         res.status(200).json({message: 'Task created successfully.', data: task || null});
     } catch (err) {
@@ -99,8 +100,10 @@ const createTask = asyncHandler(async (req, res) => {
 
 
 const editTask = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
     const { id } = req.params;
     let body = req.body;
+    body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
     const { filter } = req.body; 
     if(filter){
         delete body['filter'];
@@ -126,7 +129,7 @@ const editTask = asyncHandler(async (req, res) => {
             task.set(body);
             let updatedTask = await task.save();
             if(filter && Object.keys(filter).length != 0){
-                updatedTask = await Task.find({ status: false, userId: updatedTask._id, ...filter });
+                updatedTask = await Task.find({ status: false, userId: _id, ...filter });
             }
             res.status(200).json({message: 'Task updated successfully.', data: updatedTask || null});
         } catch (err) {
