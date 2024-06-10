@@ -81,7 +81,8 @@ const TaskListComponent = (props) => {
 
 
     const handleTaskAdd = async (formData) => {
-
+        console.log("check========>", formData)
+        
     }
  
 

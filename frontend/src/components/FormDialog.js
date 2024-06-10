@@ -9,6 +9,7 @@ import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 
 const FormDialog = (props) => {
     const { open, handleClose, handleFormSubmit, priority, dialogType, editData } = props;
@@ -19,23 +20,26 @@ const FormDialog = (props) => {
 
     useEffect(() => {
         setFormData({});
-        if(dialogType == 'edit') {
-            // call edit api and use loader also
-        }
+    }, [dialogType]);
 
-    }, [dialogType])
-    
+    // get categories from slice
+    const categories = [
+        // { title: 'The Shawshank Redemption', shared_with: ['user1', 'user2'] },
+        // { title: 'The Godfather', shared_with: [] },
+        // { title: 'The Godfather: Part II', shared_with: ['user1', 'user2'] },
+        // { title: 'The Dark Knight', shared_with: [] },
+        // { title: '12 Angry Men', shared_with: ['user1', 'user2'] },
+        // { title: "Schindler's List", shared_with: null },
+        // { title: 'Pulp Fiction', shared_with: ['user1', 'user2'] },
+    ];
+    const options = categories.map((option) => {
+        return {
+            projectType: option.shared_with && option.shared_with.length ? 'Shared Projects' : 'My Projects',
+            ...option,
+        };
+    });
 
-   
 
-    {/* <Autocomplete
-    id="grouped-demo"
-    options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
-    groupBy={(option) => option.firstLetter}
-    getOptionLabel={(option) => option.title}
-    sx={{ width: 300 }}
-    renderInput={(params) => <TextField {...params} label="With categories" />}
-    /> */}
 
     return (
         <Dialog
@@ -62,8 +66,6 @@ const FormDialog = (props) => {
                         (<Grid container spacing={2} height="100%">
                             <Grid item md={12} lg={12}>
                                 <MDInput
-                                    required
-                                    // margin="dense"
                                     id="title"
                                     name="title"
                                     label="Task Name"
@@ -76,7 +78,6 @@ const FormDialog = (props) => {
                             </Grid>
                             <Grid item md={12} lg={12}>
                                 <MDInput
-                                    // margin="dense"
                                     id="description"
                                     name="description"
                                     label="Description"
@@ -93,9 +94,9 @@ const FormDialog = (props) => {
                                     <DemoContainer components={['DatePicker']}>
                                         <DatePicker 
                                             label="Due Date*" 
-                                            format='YYYY/MM/DD' 
-                                            value={formData.due_date || null} 
-                                            onChange={(newDate) => setFormData({...formData, due_date: newDate})} 
+                                            format='YYYY-MM-DD' 
+                                            value={formData.due_date ? dayjs(formData.due_date) : null} 
+                                            onChange={(newValue) => setFormData({...formData, due_date: dayjs(newValue).format('YYYY-MM-DD')})} 
                                         />
                                     </DemoContainer>
                                 </LocalizationProvider>
@@ -118,26 +119,19 @@ const FormDialog = (props) => {
                                 </FormControl>
                             </Grid>
                             <Grid item md={12} lg={12}>
-                                <FormControl fullWidth>
-                                    <InputLabel id="category-label">Project</InputLabel>
-                                    <Select
-                                        labelId="category-label"
-                                        id="category"
-                                        value={formData.categoryId || null}
-                                        label="Project"
-                                        onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                                        sx={{textTransform: 'capitalize'}}
-                                    >
-                                        {/* {Object.entries(priority).map(([key, value], idx) => (
-                                            <MenuItem value={key} sx={{textTransform: 'capitalize'}}>{key}</MenuItem>
-                                        ))} */}
-                                    </Select>
-                                </FormControl>
+                                <Autocomplete
+                                    id="categories"
+                                    options={options.sort((a, b) => (a.projectType === 'My Projects' ? -1 : 1) - (b.projectType === 'My Projects' ? -1 : 1))}
+                                    groupBy={(option) => option.projectType}
+                                    getOptionLabel={(option) => option.title}
+                                    renderInput={(params) => <MDInput {...params} label="Project" />}
+                                    noOptionsText="No Projects"
+                                />
                             </Grid>
 
-                            {/* assigned to field with users share the given categoryId (basically they are on the same project) */}
+                            {/* assigned_to field with users share the given categoryId (basically they are on the same project) */}
                                     {/* AND this logged in person needs to be the owner of this project (this functionality is for the category screen) */}
-
+ 
                         </Grid>)              
                 }
             </DialogContent>

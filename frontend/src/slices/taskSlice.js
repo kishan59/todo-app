@@ -68,6 +68,15 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         // for completed task api above deleteTask approach is ok
 
         // for add and update we can change the given task if we are getting that object from server
+        addTask: builder.mutation({
+            query: (data) => ({
+                urll: TASKS_URL,
+                method: 'POST',
+                body: data
+            }),
+            invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+            // here after the query is finished then add the task at top
+        })
     })
 });
 
