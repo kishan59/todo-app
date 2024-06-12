@@ -4,9 +4,11 @@ import { useGetTaskListQuery } from "slices/taskSlice";
 import TaskListComponent from "components/TaskListComponent";
 import CustomToast from "components/CustomToast";
 import MDBox from "components/MDBox";
+import dayjs from "dayjs";
 
 function TodayScreen() {
-  const {data, isLoading, isError, error, refetch} = useGetTaskListQuery({type: 'today'});
+  const initialFilters = {type: 'today'};
+  const {data, isLoading, isError, error, refetch} = useGetTaskListQuery(initialFilters);
 
   const taskList = data ? data.data : null;
 
@@ -29,6 +31,7 @@ function TodayScreen() {
   return (
     <MDBox py={3}>
       <TaskListComponent
+        currentDate={dayjs().format('YYYY-MM-DD')}
         isLoading={isLoading} 
         taskList={taskList} 
         onAdd={true}
@@ -37,6 +40,7 @@ function TodayScreen() {
         onComplete={true}
         onReorder={true}
         reorderType={reorderType}
+        initialFilters={initialFilters}
       />
     </MDBox>
   );

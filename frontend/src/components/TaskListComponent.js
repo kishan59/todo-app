@@ -1,33 +1,37 @@
 import { useState } from 'react'
 import MDTypography from "components/MDTypography";
-import DateFormatter from "components/DateFormatter";
 import { CalendarMonth, Delete, DragIndicator, Edit, ErrorOutline, Margin } from "@mui/icons-material";
-import { Card, CircularProgress, Icon, IconButton } from "@mui/material";
+import { Backdrop, Card, CircularProgress, Icon, IconButton } from "@mui/material";
 import MDBox from "components/MDBox";
 import Checkboxbutton from "components/Checkboxbutton";
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import FormDialog from './FormDialog';
-import { useDeleteTaskMutation, useReorderTaskListMutation } from "slices/taskSlice";
+import { useDeleteTaskMutation, useReorderTaskListMutation, useAddTaskMutation } from "slices/taskSlice";
 import MDButton from './MDButton';
+import { toast } from 'react-toastify';
+import CustomToast from './CustomToast';
+import dayjs from 'dayjs';
 
 
 const TaskListComponent = (props) => {
-    const { isLoading = false, taskList, reorderType,
-            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false } = props;
+    const { initialFilters = {}, isLoading = false, taskList, reorderType,
+            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false, currentDate = undefined } = props;
 
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+    const [addTask, { isLoading: isAdding }] = useAddTaskMutation();
+
 
     const priority = {low: "primary", medium: "warning", high: "error"}
-    const today = new Date();
 
     const [taskId, setTaskId] = useState('');
     const [editData, setEditData] = useState({});
+    const [validationErrors, setValidationErrors] = useState({});
+    const [additionalFilters, setAdditionalFilters] = useState({});
     const [dialogType, setDialogType] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [listHover, setListHover] = useState(null); 
     const [isDragging, setIsDragging] = useState(false);
     const [reorderLoading, setReorderLoading] = useState(false);
-
 
     const cardStyle = {
     height: "100%",
@@ -81,8 +85,18 @@ const TaskListComponent = (props) => {
 
 
     const handleTaskAdd = async (formData) => {
-        console.log("check========>", formData)
-        
+        try {
+            const result = await addTask({...formData, initialFilters, additionalFilters}).unwrap();
+            toast.success(CustomToast(result?.message));
+        } catch (error) {
+            toast.error(CustomToast(error?.data?.message || error?.error));
+            if(error?.data?.errors) {
+                setValidationErrors(error.data.errors)
+            }
+        } finally {
+            handleDialogClose();
+        }
+
     }
  
 
@@ -93,10 +107,9 @@ const TaskListComponent = (props) => {
 
     const handleTaskDelete = async () => {
         try {
-            const result = await deleteTask({taskId, orderType: reorderType, filters: Object.keys(filters).length === 0 ? false : true}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
+            const result = await deleteTask({taskId, orderType: reorderType, initialFilters, additionalFilters}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
             toast.success(CustomToast(result?.message));
         } catch (error) {
-            console.error(error)
             toast.error(CustomToast(error?.data?.message || error?.error));
         } finally {
             handleDialogClose();
@@ -136,7 +149,7 @@ const TaskListComponent = (props) => {
 
     // also add the backdrop ui as well so whenever edit or add or delete or reorder is happening pass the backdrop loader from dashboard....
 
-    
+    // also need filters but it should be come from parent screen like my projects or today etc...
     return (
     <>
         <FormDialog 
@@ -160,6 +173,12 @@ const TaskListComponent = (props) => {
             : taskList ? 
                 (taskList.length != 0 ?
                     <Card sx={cardStyle}>
+                        <Backdrop
+                            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                            open={isDeleting || isAdding}
+                        >
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
                         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
                             <Droppable droppableId='droppable'>
                                 {(provided) => (
@@ -200,8 +219,8 @@ const TaskListComponent = (props) => {
                                                                 <MDTypography variant="subtitle2" color="text">
                                                                     {task.description}
                                                                 </MDTypography>
-                                                                <MDBox display="flex" alignItems="center" gap={1} color={DateFormatter('yyyy-mm-dd', task.due_date) < DateFormatter('yyyy-mm-dd', today) ? 'error' : ''}>
-                                                                    <CalendarMonth /> <MDTypography variant="body2" color="inherit">{DateFormatter('day month', task.due_date)}</MDTypography>                  
+                                                                <MDBox display="flex" alignItems="center" gap={1} color={dayjs(task.due_date).format('YYYY-MM-DD') < dayjs(currentDate).format('YYYY-MM-DD') ? 'error' : ''}>
+                                                                    <CalendarMonth /> <MDTypography variant="body2" color="inherit">{dayjs(task.due_date).format('Do MMM')}</MDTypography>                  
                                                                 </MDBox>
                                                             </MDBox>
                                                             <MDBox ml={'auto'} className={'myText'} color="secondary" sx={{visibility: listHover == task._id ? 'visible' : 'hidden'}}>

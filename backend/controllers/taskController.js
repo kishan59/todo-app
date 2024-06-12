@@ -61,7 +61,7 @@ const createTask = asyncHandler(async (req, res) => {
         const { _id } = req.user;
         let body = req.body;
         body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
-        const { filter } = req.body; 
+        const { additionalFilters: filter } = req.body; 
         if(filter){
             delete body['filter'];
         }
@@ -104,7 +104,7 @@ const editTask = asyncHandler(async (req, res) => {
     const { id } = req.params;
     let body = req.body;
     body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
-    const { filter } = req.body; 
+    const { additionalFilters: filter } = req.body; 
     if(filter){
         delete body['filter'];
     }

@@ -37,27 +37,27 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
 
         // if filter is applied then we won't call reordering common function because api will take care of the order when we change filter values just add/change/remove the given task in delete/add/update
         deleteTask: builder.mutation({
-            query: ({ taskId, orderType, filters }) => ({
+            query: ({ taskId, orderType }) => ({
                 url: `${TASKS_URL}/${taskId}`,
                 method: 'DELETE',
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
-            async onQueryStarted({ taskId, orderType, filters }, { dispatch, queryFulfilled }) {
+            async onQueryStarted({ taskId, orderType, initialFilters = {}, additionalFilters = {} }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    apiSlice.util.updateQueryData('getTaskList', undefined, (draft) => {
+                    tasksApiSlice.util.updateQueryData('getTaskList', {...initialFilters, ...additionalFilters}, (draft) => {
                         let tasks = draft.data;
-                        if(Array.isArray(tasks)) {
+                        if(Array.isArray(tasks)) {                            
                             const index = tasks.findIndex((t) => t._id === taskId);
                             if (index !== -1) {
                                 const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
                                 tasks.splice(index, 1);
-                                if(!filters){
+                                if(Object.keys(additionalFilters).length === 0){
                                     tasks = reorderTasks(tasks, orderType, baseOrder);
                                 }
                             }
                         }
                     })
-                )
+                );
                 try {
                     await queryFulfilled;
                 } catch {
@@ -70,17 +70,34 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         // for add and update we can change the given task if we are getting that object from server
         addTask: builder.mutation({
             query: (data) => ({
-                urll: TASKS_URL,
+                url: TASKS_URL,
                 method: 'POST',
                 body: data
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
-            // here after the query is finished then add the task at top
-        })
-    })
+            async onQueryStarted({initialFilters = {}, additionalFilters = {}}, { dispatch, queryFulfilled }) {
+                let patchResult;
+                try {
+                    const response = await queryFulfilled;
+                    const addedTask = response.data?.data;
+                    if(addedTask){
+                        patchResult = dispatch(
+                            apiSlice.util.updateQueryData('getTaskList', {...initialFilters, ...additionalFilters}, (draft) => {
+                                let tasks = draft.data;
+                                tasks.unshift(addedTask);
+                            })
+                        );
+                    }
+                }catch {
+                    patchResult.undo();
+                }
+            }
+        }),
+        
+    }),
 });
 
-export const { useGetTaskListQuery, useReorderTaskListMutation, useDeleteTaskMutation } = tasksApiSlice;
+export const { useGetTaskListQuery, useReorderTaskListMutation, useDeleteTaskMutation, useAddTaskMutation } = tasksApiSlice;
 
 
 

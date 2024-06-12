@@ -12,15 +12,15 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 
 const FormDialog = (props) => {
-    const { open, handleClose, handleFormSubmit, priority, dialogType, editData } = props;
+    const { open, handleClose, handleFormSubmit, priority, dialogType, editData = {} } = props;
     const [controller, ] = useMaterialUIController();
     const { darkMode } = controller;
 
-    const [formData, setFormData] = useState(editData);
+    const [formData, setFormData] = useState({});
 
     useEffect(() => {
-        setFormData({});
-    }, [dialogType]);
+        setFormData(editData);
+    }, [dialogType, editData]);
 
     // get categories from slice
     const categories = [
