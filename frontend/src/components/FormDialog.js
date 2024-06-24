@@ -12,7 +12,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 
 const FormDialog = (props) => {
-    const { open, handleClose, handleFormSubmit, priority, dialogType, editData = {} } = props;
+    const { open, handleClose, handleFormSubmit, priority, dialogType, editData = {}, validationErrors } = props;
     const [controller, ] = useMaterialUIController();
     const { darkMode } = controller;
 
@@ -38,7 +38,6 @@ const FormDialog = (props) => {
             ...option,
         };
     });
-
 
 
     return (
@@ -74,7 +73,9 @@ const FormDialog = (props) => {
                                     value={formData.title || null}
                                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                                     fullWidth
+                                    error={validationErrors.title}
                                 />
+                                    <MDTypography variant={'caption'} color={'error'}>{validationErrors.title}</MDTypography>
                             </Grid>
                             <Grid item md={12} lg={12}>
                                 <MDInput
@@ -87,7 +88,9 @@ const FormDialog = (props) => {
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                     fullWidth
                                     multiline
+                                    error={validationErrors.description}
                                 />
+                                    <MDTypography variant={'caption'} color={'error'}>{validationErrors.description}</MDTypography>
                             </Grid>
                             <Grid item md={6} lg={6}>
                                 <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -96,7 +99,13 @@ const FormDialog = (props) => {
                                             label="Due Date*" 
                                             format='YYYY-MM-DD' 
                                             value={formData.due_date ? dayjs(formData.due_date) : null} 
-                                            onChange={(newValue) => setFormData({...formData, due_date: dayjs(newValue).format('YYYY-MM-DD')})} 
+                                            onChange={(newValue) => setFormData({...formData, due_date: newValue ? dayjs(newValue).format('YYYY-MM-DD') : null})} 
+                                            slotProps={{
+                                                textField: {
+                                                  error: validationErrors.due_date,
+                                                  helperText: validationErrors.due_date,
+                                                }
+                                            }}
                                         />
                                     </DemoContainer>
                                 </LocalizationProvider>

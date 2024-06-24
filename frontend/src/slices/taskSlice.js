@@ -76,21 +76,19 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
             async onQueryStarted({initialFilters = {}, additionalFilters = {}}, { dispatch, queryFulfilled }) {
-                let patchResult;
                 try {
                     const response = await queryFulfilled;
                     const addedTask = response.data?.data;
+                    console.log("check===========>", addedTask)
                     if(addedTask){
-                        patchResult = dispatch(
+                        const patchResult = dispatch(
                             apiSlice.util.updateQueryData('getTaskList', {...initialFilters, ...additionalFilters}, (draft) => {
                                 let tasks = draft.data;
                                 tasks.unshift(addedTask);
                             })
                         );
                     }
-                }catch {
-                    patchResult.undo();
-                }
+                } catch {}
             }
         }),
         

@@ -13,7 +13,11 @@ const taskSchema = mongoose.Schema({
     },
     due_date: {
         type: Date,
-        required: [true, 'Due date is required.']
+        required: [true, 'Enter valid due date.'],
+        set: (value) => {
+            const date = new Date(value || "");
+            return date instanceof Date && !isNaN(date) ? value : null;
+        }
     },
     priority: {
         type: String,

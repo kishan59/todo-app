@@ -71,6 +71,7 @@ const TaskListComponent = (props) => {
         setTaskId('');
         setEditData({});
         setDialogType('');
+        setValidationErrors({});
     };
 
     const handleFormSubmit = (formData) => {
@@ -87,14 +88,13 @@ const TaskListComponent = (props) => {
     const handleTaskAdd = async (formData) => {
         try {
             const result = await addTask({...formData, initialFilters, additionalFilters}).unwrap();
-            toast.success(CustomToast(result?.message));
+            toast.success(CustomToast(result?.message));  
+            handleDialogClose();
         } catch (error) {
             toast.error(CustomToast(error?.data?.message || error?.error));
             if(error?.data?.errors) {
                 setValidationErrors(error.data.errors)
             }
-        } finally {
-            handleDialogClose();
         }
 
     }
@@ -159,6 +159,7 @@ const TaskListComponent = (props) => {
             dialogType={dialogType}
             priority={priority}
             editData={editData}
+            validationErrors={validationErrors}
         />
         {onAdd && 
             <MDBox mb={4}>

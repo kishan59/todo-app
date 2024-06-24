@@ -56,17 +56,18 @@ const getCompletedTaskList = asyncHandler(async (req, res) => {
 })
 
 
-const createTask = asyncHandler(async (req, res) => {
+const createTask = asyncHandler(async (req, res, next) => {
     try {
         const { _id } = req.user;
         let body = req.body;
         body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
         const { additionalFilters: filter } = req.body; 
         if(filter){
-            delete body['filter'];
+            delete body['additionalFilters'];
         }
         let due_date_order, category_order;
-        if(body.due_date){
+        const check_due_date = new Date(body.due_date || "");
+        if(body.due_date && (check_due_date instanceof Date && !isNaN(check_due_date))){
             const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
             due_date_order = getLatestDayOrder?.order.dayOrder ? Number(getLatestDayOrder.order.dayOrder) + 1 : 1;
         }
@@ -112,7 +113,8 @@ const editTask = asyncHandler(async (req, res) => {
     if(task){
         let due_date_order = task.order.dayOrder;
         let category_order = task.order.categoryOrder;
-        if(body.due_date && body.due_date != task.due_date){
+        const check_due_date = new Date(body.due_date || "");
+        if(body.due_date && (check_due_date instanceof Date && !isNaN(check_due_date)) && body.due_date != task.due_date){
             const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
             due_date_order = getLatestDayOrder?.order.dayOrder ? Number(getLatestDayOrder.order.dayOrder) + 1 : 1;
         }
