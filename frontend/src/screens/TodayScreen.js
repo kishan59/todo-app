@@ -7,8 +7,15 @@ import MDBox from "components/MDBox";
 import dayjs from "dayjs";
 
 function TodayScreen() {
-  const initialFilters = {type: 'today'};
-  const {data, isLoading, isError, error, refetch} = useGetTaskListQuery(initialFilters);
+  const today = dayjs().format('YYYY-MM-DD');
+  const [filters, setFilters] = useState({type: 'today', due_date: today});
+  const [additionalFilters, setAdditionalFilters] = useState(false);
+  // for title serach filter
+  // const filters = {
+  //   title: new RegExp(searchTitle, 'i') // 'i' makes it case-insensitive
+  // };
+
+  const {data, isLoading, isError, error, refetch} = useGetTaskListQuery(filters);
 
   const taskList = data ? data.data : null;
 
@@ -30,6 +37,7 @@ function TodayScreen() {
 
   return (
     <MDBox py={3}>
+      {/* create addition filters here...  */}
       <TaskListComponent
         currentDate={dayjs().format('YYYY-MM-DD')}
         isLoading={isLoading} 
@@ -40,7 +48,8 @@ function TodayScreen() {
         onComplete={true}
         onReorder={true}
         reorderType={reorderType}
-        initialFilters={initialFilters}
+        filters={filters}
+        additionalFilters={additionalFilters}
       />
     </MDBox>
   );

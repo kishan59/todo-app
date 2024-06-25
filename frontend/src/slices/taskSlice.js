@@ -42,16 +42,16 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 method: 'DELETE',
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
-            async onQueryStarted({ taskId, orderType, initialFilters = {}, additionalFilters = {} }, { dispatch, queryFulfilled }) {
+            async onQueryStarted({ taskId, orderType, filters = {}, additionalFilters = false }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    tasksApiSlice.util.updateQueryData('getTaskList', {...initialFilters, ...additionalFilters}, (draft) => {
+                    tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
                         let tasks = draft.data;
                         if(Array.isArray(tasks)) {                            
                             const index = tasks.findIndex((t) => t._id === taskId);
                             if (index !== -1) {
                                 const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
                                 tasks.splice(index, 1);
-                                if(Object.keys(additionalFilters).length === 0){
+                                if(additionalFilters){
                                     tasks = reorderTasks(tasks, orderType, baseOrder);
                                 }
                             }
@@ -75,14 +75,13 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 body: data
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
-            async onQueryStarted({initialFilters = {}, additionalFilters = {}}, { dispatch, queryFulfilled }) {
+            async onQueryStarted({filters = {}, additionalFilters = false}, { dispatch, queryFulfilled }) {
                 try {
                     const response = await queryFulfilled;
                     const addedTask = response.data?.data;
-                    console.log("check===========>", addedTask)
                     if(addedTask){
                         const patchResult = dispatch(
-                            apiSlice.util.updateQueryData('getTaskList', {...initialFilters, ...additionalFilters}, (draft) => {
+                            apiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
                                 let tasks = draft.data;
                                 tasks.unshift(addedTask);
                             })

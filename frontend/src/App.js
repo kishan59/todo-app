@@ -135,7 +135,7 @@ export default function App() {
   return (
     <ThemeProvider theme={darkMode ? themeDark : theme}>
       <CssBaseline />
-      <ToastContainer />
+      <ToastContainer theme={darkMode ? 'dark' : 'light'} />
       {layout === "dashboard" && (
         <>
           <Sidenav

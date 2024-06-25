@@ -10,28 +10,20 @@ const getTaskList = asyncHandler(async (req, res) => {
     const offset = req.query.page || req.query.limit ? (page - 1) * limit : 0;
 
     if(type == 'overdue'){
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const today = `${year}-${month}-${day}`;
-        tasks = await Task.find({ status: false, userId: _id, due_date: { $lt: today } })
-                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
-    }else if(type == 'today'){
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const today = `${year}-${month}-${day}`;
-        tasks = await Task.find({ status: false, userId: _id, due_date: today })
-                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
-    }else if(type == 'upcoming') {
-        const { date } = req.query;
-        if(!date){
+        const { due_date } = req.query;
+        if(!due_date){
             res.status(400);
             throw new Error('Date is not provided.');
         }
-        tasks = await Task.find({ status: false, userId: _id, due_date: date })
+        tasks = await Task.find({ status: false, userId: _id, due_date: { $lt: due_date } })
+                            .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
+    }else if(type == 'today' || type == 'upcoming') {
+        const { due_date } = req.query;
+        if(!due_date){
+            res.status(400);
+            throw new Error('Date is not provided.');
+        }
+        tasks = await Task.find({ status: false, userId: _id, due_date: due_date })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'category') {
         const { categoryId } = req.query;
@@ -61,10 +53,6 @@ const createTask = asyncHandler(async (req, res, next) => {
         const { _id } = req.user;
         let body = req.body;
         body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
-        const { additionalFilters: filter } = req.body; 
-        if(filter){
-            delete body['additionalFilters'];
-        }
         let due_date_order, category_order;
         const check_due_date = new Date(body.due_date || "");
         if(body.due_date && (check_due_date instanceof Date && !isNaN(check_due_date))){
@@ -80,11 +68,11 @@ const createTask = asyncHandler(async (req, res, next) => {
             categoryOrder: category_order,
         };
         body = {...body, order}
-        let task = await Task.create(body);
-        if(filter && Object.keys(filter).length != 0){
-            task = await Task.find({ status: false, userId: _id, ...filter });
-        }
-        res.status(200).json({message: 'Task created successfully.', data: task || null});
+        const savedTask = await Task.create(body);
+        let { filters = {} } = req.body;
+        if(filters.type) { delete filters['type']; }
+        const task = await Task.findOne({ _id: savedTask._id, status: false, userId: _id, ...filters });
+        res.status(200).json({message: 'Task created successfully.', data: task});
     } catch (err) {
         if(err.name === 'ValidationError' && err.errors) {
             const errors = Object.keys(err.errors).reduce((acc, key) => {
@@ -100,16 +88,12 @@ const createTask = asyncHandler(async (req, res, next) => {
 });
 
 
-const editTask = asyncHandler(async (req, res) => {
+const editTask = asyncHandler(async (req, res, next) => {
     const { _id } = req.user;
     const { id } = req.params;
     let body = req.body;
     body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
-    const { additionalFilters: filter } = req.body; 
-    if(filter){
-        delete body['filter'];
-    }
-    const task = await Task.find({ status: false, _id: id });
+    const task = await Task.findOne({ status: false, _id: id });
     if(task){
         let due_date_order = task.order.dayOrder;
         let category_order = task.order.categoryOrder;
@@ -129,11 +113,11 @@ const editTask = asyncHandler(async (req, res) => {
         body = {...body, order}
         try {
             task.set(body);
-            let updatedTask = await task.save();
-            if(filter && Object.keys(filter).length != 0){
-                updatedTask = await Task.find({ status: false, userId: _id, ...filter });
-            }
-            res.status(200).json({message: 'Task updated successfully.', data: updatedTask || null});
+            const savedTask = await task.save();
+            let { filters = {} } = req.body;
+            if(filters.type) { delete filters['type']; }
+            const task = await Task.findOne({ _id: savedTask._id, status: false, userId: _id, ...filters });
+            res.status(200).json({message: 'Task updated successfully.', data: task});
         } catch (err) {
             if(err.name === 'ValidationError' && err.errors) {
                 const errors = Object.keys(err.errors).reduce((acc, key) => {
@@ -156,7 +140,7 @@ const editTask = asyncHandler(async (req, res) => {
     // we then need to find the task check dayOrder and categoryOrder and then find related tasks and reorder the whole tasks we found
 const deleteTask = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const task = await Task.find({ status:false, _id: id });
+    const task = await Task.findOne({ status:false, _id: id });
     if(task){
         let reorderOperations = [];
         if(task.due_date){

@@ -10,6 +10,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
+import MDBox from './MDBox';
 
 const FormDialog = (props) => {
     const { open, handleClose, handleFormSubmit, priority, dialogType, editData = {}, validationErrors } = props;
@@ -111,21 +112,26 @@ const FormDialog = (props) => {
                                 </LocalizationProvider>
                             </Grid>
                             <Grid item md={6} lg={6}>
-                                <FormControl fullWidth>
-                                    <InputLabel id="priority-label">Priority*</InputLabel>
-                                    <Select
+                                <MDBox pt={1}>
+                                    <MDInput
+                                        size="large"
+                                        select
                                         labelId="priority-label"
                                         id="priority"
-                                        value={formData.priority || 'medium'}
                                         label="Priority*"
+                                        InputProps={{
+                                            classes: { root: "select-input-styles" },
+                                        }}
+                                        value={formData.priority || 'medium'}
                                         onChange={(e) => setFormData({...formData, priority: e.target.value})}
                                         sx={{textTransform: 'capitalize'}}
+                                        fullWidth
                                     >
                                         {Object.entries(priority).map(([key, value], idx) => (
                                             <MenuItem value={key} sx={{textTransform: 'capitalize'}}>{key}</MenuItem>
                                         ))}
-                                    </Select>
-                                </FormControl>
+                                    </MDInput>
+                                </MDBox>
                             </Grid>
                             <Grid item md={12} lg={12}>
                                 <Autocomplete

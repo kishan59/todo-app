@@ -14,8 +14,8 @@ import dayjs from 'dayjs';
 
 
 const TaskListComponent = (props) => {
-    const { initialFilters = {}, isLoading = false, taskList, reorderType,
-            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false, currentDate = undefined } = props;
+    const { filters = {}, additionalFilters = false, isLoading = false, taskList, reorderType,
+            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false } = props;
 
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
     const [addTask, { isLoading: isAdding }] = useAddTaskMutation();
@@ -26,7 +26,6 @@ const TaskListComponent = (props) => {
     const [taskId, setTaskId] = useState('');
     const [editData, setEditData] = useState({});
     const [validationErrors, setValidationErrors] = useState({});
-    const [additionalFilters, setAdditionalFilters] = useState({});
     const [dialogType, setDialogType] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [listHover, setListHover] = useState(null); 
@@ -87,7 +86,7 @@ const TaskListComponent = (props) => {
 
     const handleTaskAdd = async (formData) => {
         try {
-            const result = await addTask({...formData, initialFilters, additionalFilters}).unwrap();
+            const result = await addTask({...formData, filters, additionalFilters}).unwrap();
             toast.success(CustomToast(result?.message));  
             handleDialogClose();
         } catch (error) {
@@ -107,7 +106,7 @@ const TaskListComponent = (props) => {
 
     const handleTaskDelete = async () => {
         try {
-            const result = await deleteTask({taskId, orderType: reorderType, initialFilters, additionalFilters}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
+            const result = await deleteTask({taskId, orderType: reorderType, filters, additionalFilters}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
             toast.success(CustomToast(result?.message));
         } catch (error) {
             toast.error(CustomToast(error?.data?.message || error?.error));
@@ -220,7 +219,7 @@ const TaskListComponent = (props) => {
                                                                 <MDTypography variant="subtitle2" color="text">
                                                                     {task.description}
                                                                 </MDTypography>
-                                                                <MDBox display="flex" alignItems="center" gap={1} color={dayjs(task.due_date).format('YYYY-MM-DD') < dayjs(currentDate).format('YYYY-MM-DD') ? 'error' : ''}>
+                                                                <MDBox display="flex" alignItems="center" gap={1} color={dayjs(task.due_date).format('YYYY-MM-DD') < dayjs().format('YYYY-MM-DD') ? 'error' : ''}>
                                                                     <CalendarMonth /> <MDTypography variant="body2" color="inherit">{dayjs(task.due_date).format('Do MMM')}</MDTypography>                  
                                                                 </MDBox>
                                                             </MDBox>
