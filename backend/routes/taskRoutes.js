@@ -1,6 +1,6 @@
 import  express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
-import { createTask, deleteTask, editTask, getTaskList, reorderTask } from '../controllers/taskController.js';
+import { completeTask, createTask, deleteTask, editTask, getTaskList, reorderTask } from '../controllers/taskController.js';
 import { notAuthorizedTask, notAuthorizedCategory, notAuthorizedComment } from '../middleware/taskMiddleware.js';
 
 const router = express.Router();
@@ -12,7 +12,8 @@ router.route('/').get(getTaskList);
 router.route('/').post(createTask);
 router.route('/:id').patch(notAuthorizedTask, editTask);
 router.route('/:id').delete(notAuthorizedTask, deleteTask);
-router.route('/reorder/:id').post(notAuthorizedTask, reorderTask);
+router.route('/complete/:id').post(notAuthorizedTask, completeTask);
+router.route('/reorder').post(reorderTask);
 
 
 // router.route('/categories').get(getCategoryList);

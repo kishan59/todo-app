@@ -25,13 +25,37 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         // ************* MOST IMPORTANT *************** if filter is applied then we will disable reordering...
         reorderTaskList: builder.mutation({
             query: (data) => ({
-                url: `${TASKS_URL}/reorder/${data._id}`,
+                url: `${TASKS_URL}/reorder`,
                 method: 'POST',
                 body: data
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
             // here same thing as delete api but we rearrange the draft (tasklist) first and then call the reorder function to change the values accordingly
-        
+            async onQueryStarted({ taskOrders, orderType, filters = {}, additionalFilters = false }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
+                        let tasks = draft.data;
+                        if(Array.isArray(tasks)) {   
+                            const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0; 
+                            const reorderedData = [];
+                            for (const id of taskOrders) {
+                                const matchingObject = tasks.find(obj => obj._id === id);
+                                if (matchingObject) {
+                                    reorderedData.push(matchingObject);
+                                }
+                            }
+                            console.log("check==========>", reorderedData)
+                            tasks = reorderedData;          // check why it's not reordering properly our global state
+                            tasks = reorderTasks(tasks, orderType, baseOrder);
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
         }),
 
 
@@ -51,7 +75,7 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                             if (index !== -1) {
                                 const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
                                 tasks.splice(index, 1);
-                                if(additionalFilters){
+                                if(!additionalFilters){
                                     tasks = reorderTasks(tasks, orderType, baseOrder);
                                 }
                             }
@@ -67,6 +91,38 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         }),
         // for completed task api above deleteTask approach is ok
 
+        completeTask: builder.mutation({
+            query: ({ taskId }) => ({
+                url: `${TASKS_URL}/complete/${taskId}`,
+                method: 'POST'
+            }),
+            invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+            async onQueryStarted({ taskId, orderType, filters = {}, additionalFilters = false }, { dispatch, queryFulfilled } ) {
+                const patchResult = dispatch(
+                    tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
+                        let tasks = draft.data;
+                        if(Array.isArray(tasks)) {
+                            const taskIndex = tasks.findIndex((t) => t._id === taskId);
+                            if(taskIndex !== -1){
+                                const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
+                                tasks.splice(taskIndex, 1);
+                                if(!additionalFilters) {
+                                    tasks = reorderTasks(tasks, orderType, baseOrder);
+                                }
+                            }
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            }
+        }),
+
+
+
         // for add and update we can change the given task if we are getting that object from server
         addTask: builder.mutation({
             query: (data) => ({
@@ -81,124 +137,53 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                     const addedTask = response.data?.data;
                     if(addedTask){
                         const patchResult = dispatch(
-                            apiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
+                            tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
                                 let tasks = draft.data;
-                                tasks.unshift(addedTask);
+                                if(Array.isArray(tasks)) {
+                                    tasks.unshift(addedTask);
+                                }
                             })
                         );
                     }
                 } catch {}
             }
         }),
+
+        editTask: builder.mutation({
+            query: (data) => ({
+                url: `${TASKS_URL}/${data.taskId}`,
+                method: 'PATCH',
+                body: data
+            }),
+            invalidatesTags: [{ type: 'Task', id: 'LIST'}],
+            async onQueryStarted({taskId, orderType, filters = {}, additionalFilters = false}, { dispatch, queryFulfilled }) {
+                try {
+                    const response = await queryFulfilled;
+                    const patchResult = dispatch(
+                        tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
+                            let tasks = draft.data;
+                            if(Array.isArray(tasks)) {
+                                const taskIndex = tasks.findIndex((task) => task._id === taskId); 
+                                if(taskIndex !== -1){
+                                    const updatedTask = response.data?.data;
+                                    if(updatedTask){
+                                        tasks[taskIndex] = updatedTask;
+                                    } else {
+                                        const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
+                                        tasks.splice(taskIndex, 1);
+                                        if(!additionalFilters){
+                                            tasks = reorderTasks(tasks, orderType, baseOrder);
+                                        }
+                                    }
+                                }
+                            }
+                        }),
+                    );   
+                } catch {}
+            }
+        })
         
     }),
 });
 
-export const { useGetTaskListQuery, useReorderTaskListMutation, useDeleteTaskMutation, useAddTaskMutation } = tasksApiSlice;
-
-
-
-// export const tasksApiSlice = apiSlice.injectEndpoints({
-//     endpoints: (builder) => ({
-//       addTask: builder.mutation({
-//         query: (newTask) => ({
-//           url: TASKS_URL,
-//           method: 'POST',
-//           body: newTask,
-//         }),
-//         invalidatesTags: ['Task'], // Invalidate cache to refetch task list
-//         async onQueryStarted(newTask, { dispatch, queryFulfilled }) {
-//           // Optimistic update: Prepend added task to tasks list
-//           const patchResult = dispatch(
-//             tasksApiSlice.util.updateQueryData('getTaskList', undefined, (draft) => {
-//               draft.unshift(newTask);
-//               // Optional: Reorder tasks if needed
-//             })
-//           );
-//           try {
-//             await queryFulfilled;
-//           } catch {
-//             patchResult.undo(); // Revert optimistic update if mutation fails
-//           }
-//         },
-//       }),
-//     }),
-//   });
-
-  
-
-// export const tasksApiSlice = apiSlice.injectEndpoints({
-//     endpoints: (builder) => ({
-//       updateTask: builder.mutation({
-//         query: (updatedTask) => ({
-//           url: `${TASKS_URL}/${updatedTask.id}`,
-//           method: 'PUT',
-//           body: updatedTask,
-//         }),
-//         invalidatesTags: ['Task'], // Invalidate cache to refetch task list
-//         async onQueryStarted(updatedTask, { dispatch, queryFulfilled }) {
-//           const patchResult = dispatch(
-//             tasksApiSlice.util.updateQueryData('getTaskList', undefined, (draft) => {
-//               // Optimistic update: Update task in tasks list
-//               const index = draft.findIndex((task) => task.id === updatedTask.id);
-//               if (index !== -1) {
-//                 draft[index] = updatedTask;
-//                 // Optional: Reorder tasks if needed
-//               }
-//             })
-//           );
-//           try {
-//             await queryFulfilled;
-//           } catch {
-//             patchResult.undo(); // Revert optimistic update if mutation fails
-//           }
-//         },
-//       }),
-//       completeTask: builder.mutation({
-//         query: (taskId) => ({
-//           url: `${TASKS_URL}/${taskId}/complete`,
-//           method: 'PUT',
-//         }),
-//         invalidatesTags: ['Task'], // Invalidate cache to refetch task list
-//         async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
-//           // Optimistic update: Update completed status of task in tasks list
-//           const patchResult = dispatch(
-//             tasksApiSlice.util.updateQueryData('getTaskList', undefined, (draft) => {
-//               const index = draft.findIndex((task) => task.id === taskId);
-//               if (index !== -1) {
-//                 draft[index].completed = true;
-//                 // Optional: Reorder tasks if needed
-//               }
-//             })
-//           );
-//           try {
-//             await queryFulfilled;
-//           } catch {
-//             patchResult.undo(); // Revert optimistic update if mutation fails
-//           }
-//         },
-//       }),
-//       deleteTask: builder.mutation({
-//         query: (taskId) => ({
-//           url: `${TASKS_URL}/${taskId}`,
-//           method: 'DELETE',
-//         }),
-//         invalidatesTags: ['Task'], // Invalidate cache to refetch task list
-//         async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
-//           const patchResult = dispatch(
-//             tasksApiSlice.util.updateQueryData('getTaskList', undefined, (draft) => {
-//               // Optimistic update: Remove task from tasks list
-//               return draft.filter((task) => task.id !== taskId);
-//               // Optional: Reorder tasks if needed
-//             })
-//           );
-//           try {
-//             await queryFulfilled;
-//           } catch {
-//             patchResult.undo(); // Revert optimistic update if mutation fails
-//           }
-//         },
-//       }),
-//     }),
-//   });
-  
+export const { useGetTaskListQuery, useReorderTaskListMutation, useDeleteTaskMutation, useCompleteTaskMutation, useAddTaskMutation, useEditTaskMutation } = tasksApiSlice;

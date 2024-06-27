@@ -62,6 +62,9 @@ const FormDialog = (props) => {
                 {
                     dialogType == 'delete' ? 
                         <DialogContentText>Do you really want to delete this task?</DialogContentText>
+                    :
+                    dialogType == 'complete' ? 
+                        <DialogContentText>Do you really want mark this task as complete?</DialogContentText>
                     : 
                         (<Grid container spacing={2} height="100%">
                             <Grid item md={12} lg={12}>

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import MDTypography from "components/MDTypography";
 import { CalendarMonth, Delete, DragIndicator, Edit, ErrorOutline, Margin } from "@mui/icons-material";
+import UncheckCircle from "@mui/icons-material/CircleTwoTone";
+import CheckCircle from "@mui/icons-material/CheckCircle";
 import { Backdrop, Card, CircularProgress, Icon, IconButton } from "@mui/material";
 import MDBox from "components/MDBox";
-import Checkboxbutton from "components/Checkboxbutton";
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import FormDialog from './FormDialog';
 import { useDeleteTaskMutation, useReorderTaskListMutation, useAddTaskMutation } from "slices/taskSlice";
@@ -11,6 +12,9 @@ import MDButton from './MDButton';
 import { toast } from 'react-toastify';
 import CustomToast from './CustomToast';
 import dayjs from 'dayjs';
+import { useEditTaskMutation } from 'slices/taskSlice';
+import { useCompleteTaskMutation } from 'slices/taskSlice';
+
 
 
 const TaskListComponent = (props) => {
@@ -18,8 +22,10 @@ const TaskListComponent = (props) => {
             onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false } = props;
 
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+    const [completeTask, { isLoading: isCompleting }] = useCompleteTaskMutation();
     const [addTask, { isLoading: isAdding }] = useAddTaskMutation();
-
+    const [editTask, { isLoading: isUpdating }] = useEditTaskMutation();
+    const [reorderTaskList, { isLoading: isReordering }] = useReorderTaskListMutation();
 
     const priority = {low: "primary", medium: "warning", high: "error"}
 
@@ -33,9 +39,9 @@ const TaskListComponent = (props) => {
     const [reorderLoading, setReorderLoading] = useState(false);
 
     const cardStyle = {
-    height: "100%",
-    pb: isDragging ? 16.7 : 2,
-    flex: 1,
+        height: "100%",
+        pb: isDragging ? 16.7 : 2,
+        flex: 1,
     };
 
     const onDragStart = () => {
@@ -43,21 +49,21 @@ const TaskListComponent = (props) => {
     };
 
     const onDragEnd = async (result) => {
-    setIsDragging(false);
-    if(!result.destination) return;
-    setReorderLoading(true);
-    const taskOrders = {};
-    const reorderTasks = Array.from(taskList);
-    const movedTask = reorderTasks.splice(result.source.index, 1)[0];
-    setTaskId(movedTask._id);
-    reorderTasks.splice(result.destination.index, 0, movedTask);
-    reorderTasks.forEach((task, index) => {
-        taskOrders[task._id] = index + 1;
-    });
-    await handleReorder(taskOrders);
-    setReorderLoading(false);
+        setIsDragging(false);
+        if(!result.destination) return;
+        setReorderLoading(true);
+        const taskOrders = [];
+        const reorderTasks = Array.from(taskList);
+        const movedTask = reorderTasks.splice(result.source.index, 1)[0];
+        reorderTasks.splice(result.destination.index, 0, movedTask);
+        reorderTasks.forEach((task, index) => {
+            taskOrders[index] = task._id;
+        });
+        await handleReorder(taskOrders);
+        setReorderLoading(false);
     }
-    
+
+    console.log("chek out=========>", taskList)
     
     const handleDialogOpen = (type, data = {}) => {
         setEditData(data);
@@ -80,6 +86,8 @@ const TaskListComponent = (props) => {
             handleTaskEdit(formData);
         }else if(dialogType == 'delete'){
             handleTaskDelete();
+        }else if(dialogType == 'complete'){
+            handleTaskComplete();
         }
     }
 
@@ -100,13 +108,22 @@ const TaskListComponent = (props) => {
  
 
     const handleTaskEdit = async (formData) => {
-    console.log("check=========> edit", taskId)
+        try {
+            const result = await editTask({taskId, orderType: reorderType, ...formData, filters, additionalFilters}).unwrap();
+            toast.success(CustomToast(result?.message));
+            handleDialogClose();
+        } catch (error) {
+            toast.error(CustomToast(error?.data?.message || error?.error));
+            if(error?.data?.errors) {
+                setValidationErrors(error.data.errors)
+            } 
+        }
     }
 
 
     const handleTaskDelete = async () => {
         try {
-            const result = await deleteTask({taskId, orderType: reorderType, filters, additionalFilters}).unwrap();       // if filter is not empty object then we should have "undefined" as value otherwise its ok
+            const result = await deleteTask({taskId, orderType: reorderType, filters, additionalFilters}).unwrap();
             toast.success(CustomToast(result?.message));
         } catch (error) {
             toast.error(CustomToast(error?.data?.message || error?.error));
@@ -116,30 +133,26 @@ const TaskListComponent = (props) => {
     }
 
 
-    const handleTaskComplete = () => {
-    console.log("check=========> complete", taskId)
+    const handleTaskComplete = async () => {
+        try {
+            const result = await completeTask({taskId, orderType: reorderType, filters, additionalFilters}).unwrap();
+            toast.success(CustomToast(result?.message));
+        } catch (error) {
+            toast.error(CustomToast(error?.data?.message || error?.error));
+        } finally {
+            handleDialogClose();
+        }
     }
 
 
-    const handleReorder = async (taskOrders = {}) => {
-    console.log("check=========> reordering", taskOrders);
-    // return new Promise((resolve, reject) => {
-    //   setTimeout(() => {
-    //     console.log("Reordering completed");
-    //     resolve(); // Resolve the promise when the action is completed
-    //   }, 5000); // Simulating a 1-second delay
-    // });
-    try {
-        // const reorderTaskList = await useReorderTaskListMutation({_id: taskId, type: reorderType, taskOrders}).unwrap();
-    } catch (error) {
-        toast.error(CustomToast(error?.data?.message || error?.error));
-    } finally {
-        setTaskId('');
-    }
-
-    // _id: taskId
-    // type: 'dayOrder'
-    // taskOrders
+    const handleReorder = async (taskOrders = []) => {
+        console.log("check=========> reordering", taskOrders);
+        try {
+            const result = await reorderTaskList({orderType: reorderType, taskOrders, filters, additionalFilters}).unwrap();
+            toast.success(CustomToast(result?.message));
+        } catch (error) {
+            toast.error(CustomToast(error?.data?.message || error?.error));
+        }
     }
 
 
@@ -175,7 +188,7 @@ const TaskListComponent = (props) => {
                     <Card sx={cardStyle}>
                         <Backdrop
                             sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-                            open={isDeleting || isAdding}
+                            open={isDeleting || isCompleting || isAdding || isUpdating}
                         >
                             <CircularProgress color="inherit" />
                         </Backdrop>
@@ -213,7 +226,14 @@ const TaskListComponent = (props) => {
                                                                 <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
                                                                 <DragIndicator />
                                                             </div>}
-                                                            {onComplete && <Checkboxbutton check={task.status} color={priority[task.priority]} onClick={() => handleTaskComplete(task._id)} />}
+                                                            {onComplete && 
+                                                                <IconButton style={{ alignSelf: 'self-start' }} color={priority[task.priority]} 
+                                                                    onClick={() => {setTaskId(task._id); handleDialogOpen('complete')}}
+                                                                >
+                                                                    {task.status ? <CheckCircle /> : <UncheckCircle />}
+                                                                </IconButton>
+                                                            }
+                                                            
                                                             <MDBox>
                                                                 <MDTypography variant="body1">{task.title}</MDTypography>
                                                                 <MDTypography variant="subtitle2" color="text">

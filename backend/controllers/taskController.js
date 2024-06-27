@@ -95,17 +95,39 @@ const editTask = asyncHandler(async (req, res, next) => {
     body = {...body, userId: _id, assigned_to: body.assigned_to || _id};
     const task = await Task.findOne({ status: false, _id: id });
     if(task){
+        let reorderOperations = [];
         let due_date_order = task.order.dayOrder;
         let category_order = task.order.categoryOrder;
         const check_due_date = new Date(body.due_date || "");
-        if(body.due_date && (check_due_date instanceof Date && !isNaN(check_due_date)) && body.due_date != task.due_date){
+        if(body.due_date && (check_due_date instanceof Date && !isNaN(check_due_date)) && body.due_date != task.due_date.toISOString()){
             const getLatestDayOrder = await Task.findOne({ status: false, due_date: body.due_date }).sort({ 'order.dayOrder':  -1 });
             due_date_order = getLatestDayOrder?.order.dayOrder ? Number(getLatestDayOrder.order.dayOrder) + 1 : 1;
+            
+            // reordering all the task that this current task belongs to, to keep the order
+            const dueDateTasks = await Task.find({ status: false, due_date: task.due_date, _id: { $ne: id } }).sort({ 'order.dayOrder':  1 });
+            const reorder_dueDateTasks = dueDateTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.dayOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_dueDateTasks];
         }
         if(body.categoryId && body.categoryId != task.categoryId){
             const getLatestDayOrder = await Task.findOne({ status: false, categoryId: body.categoryId }).sort({ 'order.categoryOrder':  -1 });
             category_order = getLatestDayOrder?.order.categoryOrder ? Number(getLatestDayOrder.order.categoryOrder) + 1 : 1;
+            
+            // reordering all the task that this current task belongs to, to keep the order
+            const categoryTasks = await Task.find({ status: false, categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
+            const reorder_categoryTasks = categoryTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.categoryOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_categoryTasks]
         }
+
         let order = {
             dayOrder: due_date_order,
             categoryOrder: category_order,
@@ -114,10 +136,13 @@ const editTask = asyncHandler(async (req, res, next) => {
         try {
             task.set(body);
             const savedTask = await task.save();
+            if(savedTask){
+                const result = await Task.bulkWrite(reorderOperations);
+            }
             let { filters = {} } = req.body;
             if(filters.type) { delete filters['type']; }
-            const task = await Task.findOne({ _id: savedTask._id, status: false, userId: _id, ...filters });
-            res.status(200).json({message: 'Task updated successfully.', data: task});
+            const updatedTask = await Task.findOne({ _id: savedTask._id, status: false, userId: _id, ...filters });
+            res.status(200).json({message: 'Task updated successfully.', data: updatedTask});
         } catch (err) {
             if(err.name === 'ValidationError' && err.errors) {
                 const errors = Object.keys(err.errors).reduce((acc, key) => {
@@ -144,6 +169,7 @@ const deleteTask = asyncHandler(async (req, res, next) => {
     if(task){
         let reorderOperations = [];
         if(task.due_date){
+            // reordering all the task that this current task belongs to, to keep the order
             const dueDateTasks = await Task.find({ status: false, due_date: task.due_date, _id: { $ne: id } }).sort({ 'order.dayOrder':  1 });
             const reorder_dueDateTasks = dueDateTasks.map((task, idx) => ({
                 updateOne: {
@@ -154,6 +180,7 @@ const deleteTask = asyncHandler(async (req, res, next) => {
             reorderOperations = [...reorderOperations, ...reorder_dueDateTasks];
         }
         if(task.categoryId){
+            // reordering all the task that this current task belongs to, to keep the order
             const categoryTasks = await Task.find({ status: false, categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
             const reorder_categoryTasks = categoryTasks.map((task, idx) => ({
                 updateOne: {
@@ -179,17 +206,60 @@ const deleteTask = asyncHandler(async (req, res, next) => {
 });
 
 
+const completeTask = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const task = await Task.findOne({ status: false, _id: id });
+    if(task){
+        let reorderOperations = [];
+        if(task.due_date){
+            // reordering all the task that this current task belongs to, to keep the order
+            const dueDateTasks = await Task.find({ status: false, due_date: task.due_date, _id: { $ne : id } }).sort({ 'order.dayOrder': 1 });
+            const reorder_dueDateTasks = dueDateTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.dayOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_dueDateTasks];
+        }
+
+        if(task.categoryId){
+            // reordering all the task that this current task belongs to, to keep the order
+            const categoryTasks = await Task.find({ status: false, categoryId: task.categoryId, _id: { $ne: id } }).sort({ 'order.categoryOrder': 1 });
+            const reorder_categoryTasks = categoryTasks.map((task, idx) => ({
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { $set: { 'order.categoryOrder': idx + 1 } }
+                }
+            }));
+            reorderOperations = [...reorderOperations, ...reorder_categoryTasks];
+        }
+        try {
+            task.set({status: true, order: {}});
+            const completedTask = await task.save();
+            if(completedTask){
+                const result = await Task.bulkWrite(reorderOperations);
+            }
+            res.status(200).json({message: 'Task marked as completed.'});
+        } catch (err) {
+            next(err);
+        }
+    }else{
+        res.status(404);
+        throw new Error('Task not found.');
+    }
+})
+
 // type = 'dayOrder' or 'categoryOrder'
-// for e.x. taskOrders = {0005544dawdw: 1, dawbkabk0000: 2, dawbdkwabdkbakb: 3}
+// for e.x. taskOrders = [0005544dawdw, dawbkabk0000, dawbdkwabdkbakb]
 const reorderTask = asyncHandler(async (req, res, next) => {
-    let { type, taskOrders } = req.body;
-    if(type && taskOrders){
-        taskOrders = JSON.parse(taskOrders);
-        const orderKey = `order.${type}`; 
-        const reorderOperations = Object.keys(taskOrders).map((taskId, idx) => ({
+    let { orderType, taskOrders } = req.body;
+    if(orderType && taskOrders && taskOrders.length !== 0){
+        const orderKey = `order.${orderType}`; 
+        const reorderOperations = taskOrders.map((taskId, idx) => ({
             updateOne: {
                 filter: { _id: taskId },
-                update: { $set: { [orderKey]: taskOrders[taskId] } }
+                update: { $set: { [orderKey]: taskOrders.length - idx } }
             }
         }));
         try {
@@ -205,4 +275,4 @@ const reorderTask = asyncHandler(async (req, res, next) => {
 });
 
 
-export { getTaskList, createTask, editTask, deleteTask, reorderTask };
+export { getTaskList, createTask, editTask, deleteTask, completeTask, reorderTask };
