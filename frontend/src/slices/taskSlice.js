@@ -6,7 +6,6 @@ const reorderTasks = (tasks, type, baseOrder) => {
     for(let i = tasks.length -1; i >= 0; i--){
         tasks[i].order[type] = baseOrder + (tasks.length - 1 - i);
     }
-    return tasks;
 }
 
 
@@ -30,7 +29,6 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 body: data
             }),
             invalidatesTags: [{ type: 'Task', id: 'LIST' }],
-            // here same thing as delete api but we rearrange the draft (tasklist) first and then call the reorder function to change the values accordingly
             async onQueryStarted({ taskOrders, orderType, filters = {}, additionalFilters = false }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
                     tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
@@ -44,9 +42,8 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                                     reorderedData.push(matchingObject);
                                 }
                             }
-                            console.log("check==========>", reorderedData)
-                            tasks = reorderedData;          // check why it's not reordering properly our global state
-                            tasks = reorderTasks(tasks, orderType, baseOrder);
+                            draft.data = reorderedData;
+                            reorderTasks(draft.data, orderType, baseOrder);
                         }
                     })
                 );
@@ -74,9 +71,9 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                             const index = tasks.findIndex((t) => t._id === taskId);
                             if (index !== -1) {
                                 const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
-                                tasks.splice(index, 1);
+                                draft.data.splice(index, 1);
                                 if(!additionalFilters){
-                                    tasks = reorderTasks(tasks, orderType, baseOrder);
+                                    reorderTasks(draft.data, orderType, baseOrder);
                                 }
                             }
                         }
@@ -89,8 +86,7 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 }
             },
         }),
-        // for completed task api above deleteTask approach is ok
-
+        
         completeTask: builder.mutation({
             query: ({ taskId }) => ({
                 url: `${TASKS_URL}/complete/${taskId}`,
@@ -105,9 +101,9 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                             const taskIndex = tasks.findIndex((t) => t._id === taskId);
                             if(taskIndex !== -1){
                                 const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
-                                tasks.splice(taskIndex, 1);
+                                draft.data.splice(taskIndex, 1);
                                 if(!additionalFilters) {
-                                    tasks = reorderTasks(tasks, orderType, baseOrder);
+                                    reorderTasks(draft.data, orderType, baseOrder);
                                 }
                             }
                         }
@@ -120,8 +116,6 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 }
             }
         }),
-
-
 
         // for add and update we can change the given task if we are getting that object from server
         addTask: builder.mutation({
@@ -140,7 +134,7 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                             tasksApiSlice.util.updateQueryData('getTaskList', filters, (draft) => {
                                 let tasks = draft.data;
                                 if(Array.isArray(tasks)) {
-                                    tasks.unshift(addedTask);
+                                    draft.data.unshift(addedTask);
                                 }
                             })
                         );
@@ -167,12 +161,12 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                                 if(taskIndex !== -1){
                                     const updatedTask = response.data?.data;
                                     if(updatedTask){
-                                        tasks[taskIndex] = updatedTask;
+                                        draft.data[taskIndex] = updatedTask;
                                     } else {
                                         const baseOrder = tasks.length ? tasks[tasks.length - 1].order[orderType] : 0;
-                                        tasks.splice(taskIndex, 1);
+                                        draft.data.splice(taskIndex, 1);
                                         if(!additionalFilters){
-                                            tasks = reorderTasks(tasks, orderType, baseOrder);
+                                            reorderTasks(draft.data, orderType, baseOrder);
                                         }
                                     }
                                 }

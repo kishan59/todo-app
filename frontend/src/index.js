@@ -23,7 +23,7 @@ import { MaterialUIControllerProvider } from "context";
 import { Provider } from "react-redux";
 import store from "app/store";
 import PrivateRoutes from "components/PrivateRoutes";
-import Dashboard from "screens/DashboardScreen";
+import InboxScreen from "screens/InboxScreen";
 import LoginScreen from "screens/AuthScreens/LoginScreen";
 import RegisterScreen from "screens/AuthScreens/RegisterScreen";
 import NotFoundPage from "components/NotFoundPage";
@@ -44,9 +44,9 @@ root.render(
 
             {/* authenticated allowed routes */}
             <Route element={<PrivateRoutes />}>
-              <Route index={true} element={<Navigate to="/inbox" />} />
-              <Route path="inbox" element={<Dashboard />} />
+              <Route index={true} element={<Navigate to="/today" />} />
               <Route path="today" element={<TodayScreen />} />
+              <Route path="inbox" element={<InboxScreen />} />
               <Route path="profile" element={<ProfileScreen />} />
 
             </Route>

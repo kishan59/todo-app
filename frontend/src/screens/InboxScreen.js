@@ -5,7 +5,7 @@ import TaskListComponent from "components/TaskListComponent";
 import CustomToast from "components/CustomToast";
 import MDBox from "components/MDBox";
 
-function Dashboard() {
+function InboxScreen() {
   const {data, isLoading, isError, error, refetch} = useGetTaskListQuery();
   const taskList = data ? data.data : null;
 
@@ -36,4 +36,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default InboxScreen;

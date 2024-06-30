@@ -146,7 +146,6 @@ const TaskListComponent = (props) => {
 
 
     const handleReorder = async (taskOrders = []) => {
-        console.log("check=========> reordering", taskOrders);
         try {
             const result = await reorderTaskList({orderType: reorderType, taskOrders, filters, additionalFilters}).unwrap();
             toast.success(CustomToast(result?.message));
