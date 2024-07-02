@@ -63,7 +63,6 @@ const TaskListComponent = (props) => {
         setReorderLoading(false);
     }
 
-    console.log("chek out=========>", taskList)
     
     const handleDialogOpen = (type, data = {}) => {
         setEditData(data);
@@ -155,11 +154,6 @@ const TaskListComponent = (props) => {
     }
 
 
-  
-
-
-    // also add the backdrop ui as well so whenever edit or add or delete or reorder is happening pass the backdrop loader from dashboard....
-
     // also need filters but it should be come from parent screen like my projects or today etc...
     return (
     <>
@@ -173,7 +167,7 @@ const TaskListComponent = (props) => {
             validationErrors={validationErrors}
         />
         {onAdd && 
-            <MDBox mb={4}>
+            <MDBox mb={4} display="flex" flexDirection="row-reverse">
                 <MDButton variant="gradient" color="info" onClick={() => handleDialogOpen('add')}><Icon>add</Icon>&nbsp; Add Task</MDButton>
             </MDBox>
         }
@@ -187,7 +181,7 @@ const TaskListComponent = (props) => {
                     <Card sx={cardStyle}>
                         <Backdrop
                             sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-                            open={isDeleting || isCompleting || isAdding || isUpdating}
+                            open={isDeleting || isCompleting || isAdding || isUpdating || isReordering}
                         >
                             <CircularProgress color="inherit" />
                         </Backdrop>
@@ -219,10 +213,10 @@ const TaskListComponent = (props) => {
                                                             borderColor={'#f0f2f5'}
                                                             onMouseEnter={() => setListHover(task._id)}
                                                             onMouseLeave={() => setListHover(null)}
-                                                            pl={4}
+                                                            pl={onReorder && !additionalFilters ? 1 : 3}
                                                         >
-                                                            {onReorder &&
-                                                                <div {...provided.dragHandleProps} style={{ marginTop: 5, marginLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
+                                                            {(onReorder && !additionalFilters) &&
+                                                                <div {...provided.dragHandleProps} style={{ marginTop: 5, paddingLeft: '-30px', visibility: listHover == task._id ? 'visible' : 'hidden', cursor: 'grab' }}>
                                                                 <DragIndicator />
                                                             </div>}
                                                             {onComplete && 

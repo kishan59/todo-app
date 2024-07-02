@@ -8,33 +8,45 @@ const getTaskList = asyncHandler(async (req, res) => {
     const limit = req.query.limit || 0;
     const page = req.query.page || 1;
     const offset = req.query.page || req.query.limit ? (page - 1) * limit : 0;
+    
+    const { due_date, categoryId, title, priority } = req.query;
+    const searchFilters = {
+        // due_date: due_date || undefined, 
+        // categoryId: categoryId || undefined,
+        // title: title ? new RegExp(title, 'i') : undefined, 
+        // priority: priority || undefined 
+        ...(due_date && { due_date }),
+        ...(categoryId && { categoryId }),
+        ...(title && { title: new RegExp(title, 'i') }),
+        ...(priority && { priority }),
+    }
 
     if(type == 'overdue'){
-        const { due_date } = req.query;
+        delete searchFilters.due_date;
         if(!due_date){
             res.status(400);
             throw new Error('Date is not provided.');
         }
-        tasks = await Task.find({ status: false, userId: _id, due_date: { $lt: due_date } })
+        tasks = await Task.find({ status: false, userId: _id, due_date: { $lt: due_date }, ...searchFilters })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'today' || type == 'upcoming') {
-        const { due_date } = req.query;
+        delete searchFilters.due_date;
         if(!due_date){
             res.status(400);
             throw new Error('Date is not provided.');
         }
-        tasks = await Task.find({ status: false, userId: _id, due_date: due_date })
+        tasks = await Task.find({ status: false, userId: _id, due_date: due_date, ...searchFilters })
                             .sort({ 'order.dayOrder': -1 }).skip(offset).limit(limit);
     }else if(type == 'category') {
-        const { categoryId } = req.query;
+        delete searchFilters.categoryId;
         if(!categoryId){
             res.status(400);
             throw new Error('Category Id is not provided.');
         }
-        tasks = await Task.find({ status: false, $or: [{ userId: _id }, { assigned_to: _id }], categoryId })
+        tasks = await Task.find({ status: false, $or: [{ userId: _id }, { assigned_to: _id }], categoryId, ...searchFilters })
                             .sort({ 'order.categoryOrder': -1 }).skip(offset).limit(limit);
     }else{
-        tasks = await Task.find({ status: false, userId: _id })
+        tasks = await Task.find({ status: false, userId: _id, ...searchFilters })
                             .sort({ 'createdAt': -1 }).skip(offset).limit(limit);
     }
     

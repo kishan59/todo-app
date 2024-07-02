@@ -21,7 +21,7 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         }),
 
         
-        // ************* MOST IMPORTANT *************** if filter is applied then we will disable reordering...
+        // ************* MOST IMPORTANT  *************** if filter is applied then we will disable reordering...
         reorderTaskList: builder.mutation({
             query: (data) => ({
                 url: `${TASKS_URL}/reorder`,
@@ -55,7 +55,6 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
             },
         }),
 
-
         // if filter is applied then we won't call reordering common function because api will take care of the order when we change filter values just add/change/remove the given task in delete/add/update
         deleteTask: builder.mutation({
             query: ({ taskId, orderType }) => ({
@@ -86,7 +85,7 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 }
             },
         }),
-        
+
         completeTask: builder.mutation({
             query: ({ taskId }) => ({
                 url: `${TASKS_URL}/complete/${taskId}`,

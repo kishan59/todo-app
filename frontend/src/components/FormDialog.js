@@ -71,11 +71,11 @@ const FormDialog = (props) => {
                                 <MDInput
                                     id="title"
                                     name="title"
-                                    label="Task Name"
+                                    label="Task Name*"
                                     type="text"
                                     variant="standard"
                                     value={formData.title || null}
-                                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                    onChange={(e) => setFormData({...formData, title: e.target.value.trim() ? e.target.value : null})}
                                     fullWidth
                                     error={validationErrors.title}
                                 />
@@ -87,11 +87,12 @@ const FormDialog = (props) => {
                                     name="description"
                                     label="Description"
                                     type="text"
-                                    variant="standard"
+                                    variant="outlined"
                                     value={formData.description || null}
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value.trim() ? e.target.value : null})}
                                     fullWidth
                                     multiline
+                                    rows={4}
                                     error={validationErrors.description}
                                 />
                                     <MDTypography variant={'caption'} color={'error'}>{validationErrors.description}</MDTypography>
