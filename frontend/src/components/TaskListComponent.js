@@ -19,7 +19,7 @@ import { useCompleteTaskMutation } from 'slices/taskSlice';
 
 const TaskListComponent = (props) => {
     const { filters = {}, additionalFilters = false, isLoading = false, taskList, reorderType,
-            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false } = props;
+            onAdd = false, onEdit = false, onDelete = false, onComplete = false, onReorder = false, onPagination = false, onPaginationHandle } = props;
 
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
     const [completeTask, { isLoading: isCompleting }] = useCompleteTaskMutation();
@@ -154,7 +154,7 @@ const TaskListComponent = (props) => {
     }
 
 
-    // also need filters but it should be come from parent screen like my projects or today etc...
+    // ************** add pagination (load more button) **************
     return (
     <>
         <FormDialog 
@@ -249,6 +249,14 @@ const TaskListComponent = (props) => {
                                 )}
                             </Droppable>
                         </DragDropContext>
+
+                        {onPagination &&
+                            <MDBox mx={'auto'} mt={4}>
+                                <MDButton variant="text" color="info" onClick={onPaginationHandle}>
+                                    <Icon sx={{marginRight: 1}}>loop</Icon> Load More
+                                </MDButton>
+                            </MDBox>
+                        }
                     </Card>
                 : 
                     <MDBox display="flex" alignItems="center" flexDirection="column">

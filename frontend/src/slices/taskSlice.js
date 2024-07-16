@@ -18,10 +18,32 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
                 params: data
             }),
             providesTags: (result) => result?.data ? [...result.data.map(({ _id }) => ({ type: 'Task', id: _id })), 'Task'] : ['Task'], 
+            // this can be use for pagination (load more) functionality....
+              // flaw is it's not working, it's only returning new page data not keeping the old ones
+            // serializeQueryArgs: ({ queryArgs }) => {
+            //     const newQueryArgs = { ...queryArgs };
+            //     if (newQueryArgs.page) {
+            //         delete newQueryArgs.page;
+            //     }
+            //     return newQueryArgs;
+            // },
+            // merge: (currentData, newData, { arg }) => {
+            //     const { limit, page } = arg; // Extract relevant arguments
+            //     console.log("check me=========>", currentData,"----------------",newData)
+            //     if (limit !== 0 && page > 1) { // Check for pagination conditions
+            //         // Concatenate data for subsequent pages
+            //                  // also need some kind of indication that we reached the limit like if we get empty array.... so we can hide the load more btn
+            //         return { ...currentData, data: [...currentData.data, ...newData.data] };
+            //     } else {
+            //         // Default behavior for first page or no limit
+            //         return newData;
+            //     }
+            // }
+
         }),
 
         
-        // ************* MOST IMPORTANT  *************** if filter is applied then we will disable reordering...
+        // ************* MOST IMPORTANT *************** if filter is applied then we will disable reordering...
         reorderTaskList: builder.mutation({
             query: (data) => ({
                 url: `${TASKS_URL}/reorder`,

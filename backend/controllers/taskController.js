@@ -11,10 +11,6 @@ const getTaskList = asyncHandler(async (req, res) => {
     
     const { due_date, categoryId, title, priority } = req.query;
     const searchFilters = {
-        // due_date: due_date || undefined, 
-        // categoryId: categoryId || undefined,
-        // title: title ? new RegExp(title, 'i') : undefined, 
-        // priority: priority || undefined 
         ...(due_date && { due_date }),
         ...(categoryId && { categoryId }),
         ...(title && { title: new RegExp(title, 'i') }),

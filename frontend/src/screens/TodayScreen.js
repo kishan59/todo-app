@@ -17,7 +17,7 @@ function TodayScreen() {
   const [additionalFilters, setAdditionalFilters] = useState({});
 
   const {data, isLoading, isError, error, refetch} = useGetTaskListQuery(filters);
-  const taskList = data ? data.data : null;
+  const taskList = data ? data.data : null; 
 
 
   useEffect(() => {
@@ -129,6 +129,8 @@ function TodayScreen() {
         reorderType={reorderType}
         filters={filters}
         additionalFilters={filters.title || filters.priority || filters.categoryId ? true : false}
+        // onPagination={true}
+        // onPaginationHandle={() => handlePagination()}
       />
     </MDBox>
   );
