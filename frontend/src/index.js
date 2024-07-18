@@ -29,6 +29,7 @@ import RegisterScreen from "screens/AuthScreens/RegisterScreen";
 import NotFoundPage from "components/NotFoundPage";
 import ProfileScreen from "screens/ProfileScreen";
 import TodayScreen from "screens/TodayScreen";
+import CategoryScreen from "screens/CategoryScreen";
 
 const container = document.getElementById("app");
 const root = createRoot(container);
@@ -47,6 +48,7 @@ root.render(
               <Route index={true} element={<Navigate to="/today" />} />
               <Route path="today" element={<TodayScreen />} />
               <Route path="inbox" element={<InboxScreen />} />
+              <Route path="categories" element={<CategoryScreen />} />
               <Route path="profile" element={<ProfileScreen />} />
 
             </Route>

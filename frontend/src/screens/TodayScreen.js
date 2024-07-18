@@ -62,7 +62,7 @@ function TodayScreen() {
 
   return (
     <MDBox py={3}>
-      {/* create addition filters here...  */}
+      {/* Additional filters...  */}
       <MDBox mb={2}>
         <Grid container spacing={2} height="100%">
           <Grid item md={4} lg={3}>

@@ -119,4 +119,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 });
 
 
-export { registerUser, loginUser, logoutUser, getUserProfile, updateUserProfile };
+const getUsersList = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+
+    const users = await User.find({ _id: { $ne: _id } });
+    res.status(200).json({data: users});
+})
+
+
+export { registerUser, loginUser, logoutUser, getUserProfile, updateUserProfile, getUsersList };
